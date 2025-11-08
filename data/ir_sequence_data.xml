@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- ============================================ -->
+        <!-- Sequences للوثائق العدلية -->
+        <!-- ============================================ -->
+
+        <!-- Sequence افتراضي عام -->
+        <record id="seq_notary_document_default" model="ir.sequence">
+            <field name="name">Notary Document Default</field>
+            <field name="code">notary.document.default</field>
+            <field name="prefix">DOC-%(year)s-</field>
+            <field name="padding">6</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <!-- Sequence لعقود الزواج -->
+        <record id="seq_notary_document_marriage" model="ir.sequence">
+            <field name="name">Notary Document - Marriage Contract</field>
+            <field name="code">notary.document.marriage_contract</field>
+            <field name="prefix">MC-%(year)s-</field>
+            <field name="padding">6</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <!-- Sequence لرسوم الإرث -->
+        <record id="seq_notary_document_inheritance" model="ir.sequence">
+            <field name="name">Notary Document - Inheritance Deed</field>
+            <field name="code">notary.document.inheritance_deed</field>
+            <field name="prefix">IH-%(year)s-</field>
+            <field name="padding">6</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <!-- Sequence لعقود الطلاق -->
+        <record id="seq_notary_document_divorce" model="ir.sequence">
+            <field name="name">Notary Document - Divorce Contract</field>
+            <field name="code">notary.document.divorce_contract</field>
+            <field name="prefix">DC-%(year)s-</field>
+            <field name="padding">6</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <!-- Sequence للتوكيلات -->
+        <record id="seq_notary_document_power_attorney" model="ir.sequence">
+            <field name="name">Notary Document - Power of Attorney</field>
+            <field name="code">notary.document.power_attorney</field>
+            <field name="prefix">PA-%(year)s-</field>
+            <field name="padding">6</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <!-- Sequence للتصديقات -->
+        <record id="seq_notary_document_certification" model="ir.sequence">
+            <field name="name">Notary Document - Certification</field>
+            <field name="code">notary.document.certification</field>
+            <field name="prefix">CR-%(year)s-</field>
+            <field name="padding">6</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+    </data>
+</odoo>

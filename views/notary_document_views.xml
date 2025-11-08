@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <!-- ============================================ -->
+        <!-- Document List View -->
+        <!-- ============================================ -->
+
+        <record id="view_notary_document_list" model="ir.ui.view">
+            <field name="name">notary.document.list</field>
+            <field name="model">notary.document</field>
+            <field name="arch" type="xml">
+                <list string="الوثائق" default_order="date_created desc,id desc" multi_edit="1">
+                    <field name="name" readonly="1"/>
+                    <field name="document_type_id"/>
+                    <field name="partner_id"/>
+                    <field name="notary_id" widget="many2one_avatar_user"/>
+                    <field name="date_created"/>
+                    <field name="price" widget="monetary"/>
+                    <field name="currency_id" column_invisible="1"/>
+                    <field name="state" widget="badge"
+                           decoration-info="state == 'draft'"
+                           decoration-success="state == 'confirmed'"
+                           decoration-primary="state == 'finalized'"
+                           decoration-danger="state == 'cancelled'"/>
+                    <field name="invoice_state" optional="show" widget="badge"
+                           decoration-success="invoice_state == 'paid'"
+                           decoration-warning="invoice_state == 'partial'"
+                           decoration-danger="invoice_state == 'not_paid'"/>
+                    <field name="has_pdf" widget="boolean_toggle" optional="hide"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- ============================================ -->
+        <!-- Document Form View -->
+        <!-- ============================================ -->
+
+        <record id="view_notary_document_form" model="ir.ui.view">
+            <field name="name">notary.document.form</field>
+            <field name="model">notary.document</field>
+            <field name="arch" type="xml">
+                <form string="الوثيقة العدلية">
+                    <header>
+                        <!-- Actions Buttons -->
+                        <button name="action_confirm" string="تأكيد" type="object"
+                                class="oe_highlight" invisible="state != 'draft'"
+                                groups="group_notary_user"/>
+
+                        <button name="action_finalize" string="إتمام" type="object"
+                                class="oe_highlight" invisible="state != 'confirmed'"
+                                groups="group_notary_manager"/>
+
+                        <button name="action_generate_pdf" string="توليد PDF" type="object"
+                                invisible="state not in ['draft', 'confirmed']"
+                                groups="group_notary_user"/>
+
+                        <button name="action_calculate_inheritance" string="حساب الإرث" type="object"
+                                invisible="state not in ['draft', 'confirmed']"
+                                groups="group_notary_user"/>
+
+                        <button name="action_cancel" string="إلغاء" type="object"
+                                invisible="state in ['finalized', 'cancelled']"
+                                groups="group_notary_manager"/>
+
+                        <button name="action_draft" string="إرجاع للمسودة" type="object"
+                                invisible="state != 'cancelled'"
+                                groups="group_notary_manager"/>
+
+                        <!-- Statusbar -->
+                        <field name="state" widget="statusbar"
+                               statusbar_visible="draft,confirmed,finalized"/>
+                    </header>
+
+                    <sheet>
+                        <!-- Ribbons -->
+                        <widget name="web_ribbon" title="ملغي" bg_color="text-bg-danger"
+                                invisible="state != 'cancelled'"/>
+                        <widget name="web_ribbon" title="مُتمّ" bg_color="text-bg-success"
+                                invisible="state != 'finalized'"/>
+
+                        <!-- Smart Buttons -->
+                        <div class="oe_button_box" name="button_box">
+                            <button name="action_view_invoice" type="object"
+                                    class="oe_stat_button" icon="fa-pencil-square-o"
+                                    invisible="not invoice_id">
+                                <div class="o_field_widget o_stat_info">
+                                    <span class="o_stat_text">الفاتورة</span>
+                                    <span class="o_stat_value">
+                                        <field name="invoice_state" widget="badge"/>
+                                    </span>
+                                </div>
+                            </button>
+                        </div>
+
+                        <group>
+                            <group string="المعلومات الأساسية">
+                                <field name="name" readonly="1"/>
+                                <field name="document_type_id"
+                                       options="{'no_create': True}"
+                                       readonly="state in ['finalized', 'cancelled']"/>
+                                <field name="partner_id"
+                                       options="{'no_create': True, 'no_quick_create': True}"
+                                       readonly="state in ['finalized', 'cancelled']"/>
+                                <field name="notary_id"
+                                       widget="many2one_avatar_user"
+                                       readonly="state in ['finalized', 'cancelled']"/>
+                                <field name="company_id"
+                                       groups="base.group_multi_company"
+                                       options="{'no_create': True}"
+                                       readonly="state in ['finalized', 'cancelled']"/>
+                            </group>
+
+                            <group string="التواريخ والسعر">
+                                <field name="date_created" readonly="state in ['finalized', 'cancelled']"/>
+                                <field name="date_finalized" readonly="1"/>
+                                <field name="price" widget="monetary"
+                                       readonly="state in ['finalized', 'cancelled']"/>
+                                <field name="currency_id" invisible="1"/>
+                            </group>
+                        </group>
+
+                        <group string="الفاتورة والدفع" invisible="not invoice_id">
+                            <group>
+                                <field name="invoice_id" readonly="1"/>
+                                <field name="is_invoice_paid" readonly="1" widget="boolean"/>
+                            </group>
+                        </group>
+
+                        <notebook>
+                            <!-- Tab 1: البيانات -->
+                            <page string="البيانات" name="data">
+                                <group>
+                                    <field name="data" widget="ace"
+                                           options="{'mode': 'json'}"
+                                           nolabel="1"
+                                           readonly="state in ['finalized', 'cancelled']"
+                                           placeholder="{'key': 'value'}"/>
+                                </group>
+                                <group string="عرض البيانات (للقراءة فقط)">
+                                    <field name="data_display" widget="text" nolabel="1" readonly="1"/>
+                                </group>
+                            </page>
+
+                            <!-- Tab 2: الملف -->
+                            <page string="الملف" name="file">
+                                <group>
+                                    <group string="ملف PDF">
+                                        <field name="has_pdf" readonly="1" widget="boolean"/>
+                                        <field name="pdf_filename" readonly="1" invisible="not has_pdf"/>
+                                        <field name="pdf_file" filename="pdf_filename"
+                                               invisible="not has_pdf"/>
+                                        <field name="pdf_url" widget="url" readonly="1"
+                                               invisible="not pdf_url"/>
+                                    </group>
+
+                                    <group string="التحقق">
+                                        <field name="qr_code" readonly="1" invisible="not qr_code"/>
+                                        <field name="file_hash" readonly="1" invisible="not file_hash"/>
+                                    </group>
+                                </group>
+                            </page>
+
+                            <!-- Tab 3: ملاحظات -->
+                            <page string="ملاحظات" name="notes">
+                                <field name="notes" nolabel="1"
+                                       placeholder="ملاحظات إضافية..."
+                                       readonly="state in ['finalized', 'cancelled']"/>
+                            </page>
+
+                            <!-- Tab 4: السجل (Chatter) -->
+                            <page string="السجل" name="history">
+                                <field name="message_ids" widget="mail_thread"/>
+                            </page>
+                        </notebook>
+                    </sheet>
+
+                    <!-- Chatter -->
+                    <chatter/>
+                </form>
+            </field>
+        </record>
+
+        <!-- ============================================ -->
+        <!-- Document Kanban View -->
+        <!-- ============================================ -->
+
+        <record id="view_notary_document_kanban" model="ir.ui.view">
+            <field name="name">notary.document.kanban</field>
+            <field name="model">notary.document</field>
+            <field name="arch" type="xml">
+                <kanban default_group_by="state">
+                    <field name="id"/>
+                    <field name="name"/>
+                    <field name="document_type_id"/>
+                    <field name="partner_id"/>
+                    <field name="notary_id"/>
+                    <field name="date_created"/>
+                    <field name="price"/>
+                    <field name="currency_id"/>
+                    <field name="state"/>
+                    <field name="invoice_state"/>
+                    <templates>
+                        <t t-name="card" class="oe_kanban_card">
+                            <div class="oe_kanban_content">
+                                <div class="o_kanban_card_header">
+                                    <div class="o_kanban_card_header_title">
+                                        <div class="o_primary">
+                                            <strong><field name="name"/></strong>
+                                        </div>
+                                        <div class="o_secondary">
+                                            <field name="document_type_id"/>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="o_kanban_card_body">
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <i class="fa fa-user"/> <field name="partner_id"/>
+                                        </div>
+                                        <div class="col-12 mt-1">
+                                            <i class="fa fa-calendar"/> <field name="date_created"/>
+                                        </div>
+                                        <div class="col-12 mt-1">
+                                            <strong>السعر: </strong>
+                                            <field name="price" widget="monetary"/>
+                                        </div>
+                                        <div class="col-12 mt-1">
+                                            <strong>الفاتورة: </strong>
+                                            <field name="invoice_state" widget="badge"/>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="o_kanban_card_footer">
+                                    <div>
+                                        <img t-att-src="kanban_image('res.users', 'avatar_128', record.notary_id.raw_value)"
+                                             t-att-title="record.notary_id.value"
+                                             t-att-alt="record.notary_id.value"
+                                             class="oe_avatar" style="width: 24px; height: 24px; border-radius: 50%;"/>
+                                        <span class="ms-1"><field name="notary_id"/></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+                    </templates>
+                </kanban>
+            </field>
+        </record>
+
+        <!-- ============================================ -->
+        <!-- Document Search View -->
+        <!-- ============================================ -->
+
+        <record id="view_notary_document_search" model="ir.ui.view">
+            <field name="name">notary.document.search</field>
+            <field name="model">notary.document</field>
+            <field name="arch" type="xml">
+                <search string="بحث الوثائق">
+                    <field name="name" string="رقم الوثيقة"/>
+                    <field name="partner_id" string="الزبون"/>
+                    <field name="document_type_id" string="نوع الوثيقة"/>
+                    <field name="notary_id" string="العدل"/>
+
+                    <!-- Filters -->
+                    <filter string="وثائقي" name="my_documents" domain="[('notary_id', '=', uid)]"/>
+                    <separator/>
+                    <filter string="مسودات" name="draft" domain="[('state', '=', 'draft')]"/>
+                    <filter string="مؤكدة" name="confirmed" domain="[('state', '=', 'confirmed')]"/>
+                    <filter string="مُتمة" name="finalized" domain="[('state', '=', 'finalized')]"/>
+                    <filter string="ملغية" name="cancelled" domain="[('state', '=', 'cancelled')]"/>
+                    <separator/>
+                    <filter string="فواتير مدفوعة" name="paid" domain="[('invoice_state', '=', 'paid')]"/>
+                    <filter string="فواتير غير مدفوعة" name="not_paid" domain="[('invoice_state', '=', 'not_paid')]"/>
+                    <separator/>
+                    <filter string="هذا الشهر" name="this_month"
+                            domain="[('date_created', '&gt;=', (context_today() - datetime.timedelta(days=30)).strftime('%Y-%m-%d'))]"/>
+                    <filter string="هذا الأسبوع" name="this_week"
+                            domain="[('date_created', '&gt;=', (context_today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+                    <filter string="اليوم" name="today" domain="[('date_created', '=', context_today().strftime('%Y-%m-%d'))]"/>
+
+                    <separator/>
+
+                    <group expand="0" string="تجميع حسب">
+                        <filter string="الحالة" name="group_by_state" context="{'group_by': 'state'}"/>
+                        <filter string="نوع الوثيقة" name="group_by_type" context="{'group_by': 'document_type_id'}"/>
+                        <filter string="العدل" name="group_by_notary" context="{'group_by': 'notary_id'}"/>
+                        <filter string="تاريخ الإنشاء" name="group_by_date" context="{'group_by': 'date_created'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <!-- ============================================ -->
+        <!-- Actions -->
+        <!-- ============================================ -->
+
+        <!-- Action: كل الوثائق -->
+        <record id="action_notary_document" model="ir.actions.act_window">
+            <field name="name">الوثائق العدلية</field>
+            <field name="res_model">notary.document</field>
+            <field name="view_mode">kanban,list,form</field>
+            <field name="context">{'search_default_my_documents': 1}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    إنشاء وثيقة عدلية جديدة
+                </p>
+                <p>
+                    ابدأ بإنشاء وثيقة عدلية جديدة للزبائن.
+                </p>
+            </field>
+        </record>
+
+        <!-- Action: المسودات -->
+        <record id="action_notary_document_draft" model="ir.actions.act_window">
+            <field name="name">المسودات</field>
+            <field name="res_model">notary.document</field>
+            <field name="view_mode">list,kanban,form</field>
+            <field name="domain">[('state', '=', 'draft')]</field>
+            <field name="context">{'search_default_my_documents': 1}</field>
+        </record>
+
+        <!-- Action: المؤكدة -->
+        <record id="action_notary_document_confirmed" model="ir.actions.act_window">
+            <field name="name">الوثائق المؤكدة</field>
+            <field name="res_model">notary.document</field>
+            <field name="view_mode">list,kanban,form</field>
+            <field name="domain">[('state', '=', 'confirmed')]</field>
+            <field name="context">{'search_default_my_documents': 1}</field>
+        </record>
+
+        <!-- Action: المُتمة -->
+        <record id="action_notary_document_finalized" model="ir.actions.act_window">
+            <field name="name">الوثائق المُتمة</field>
+            <field name="res_model">notary.document</field>
+            <field name="view_mode">list,kanban,form</field>
+            <field name="domain">[('state', '=', 'finalized')]</field>
+            <field name="context">{'search_default_my_documents': 1}</field>
+        </record>
+
+    </data>
+</odoo>

@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_notary_document_user,notary.document.user,model_notary_document,group_notary_user,1,1,1,1
+access_notary_document_manager,notary.document.manager,model_notary_document,group_notary_manager,1,1,1,1
+access_notary_document_admin,notary.document.admin,model_notary_document,group_notary_admin,1,1,1,1
+access_notary_document_type_user,notary.document.type.user,model_notary_document_type,group_notary_user,1,0,0,0
+access_notary_document_type_manager,notary.document.type.manager,model_notary_document_type,group_notary_manager,1,0,0,0
+access_notary_document_type_admin,notary.document.type.admin,model_notary_document_type,group_notary_admin,1,1,1,1
