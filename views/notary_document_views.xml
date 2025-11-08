@@ -44,28 +44,23 @@
                     <header>
                         <!-- Actions Buttons -->
                         <button name="action_confirm" string="تأكيد" type="object"
-                                class="oe_highlight" invisible="state != 'draft'"
-                                groups="group_notary_user"/>
+                                class="oe_highlight" invisible="state != 'draft'"/>
 
                         <button name="action_finalize" string="إتمام" type="object"
-                                class="oe_highlight" invisible="state != 'confirmed'"
-                                groups="group_notary_manager"/>
+                                class="oe_highlight" invisible="state != 'confirmed'"/>
 
                         <button name="action_generate_pdf" string="توليد PDF" type="object"
-                                invisible="state not in ['draft', 'confirmed']"
-                                groups="group_notary_user"/>
+                                invisible="state not in ['draft', 'confirmed']"/>
 
                         <button name="action_calculate_inheritance" string="حساب الإرث" type="object"
-                                invisible="state not in ['draft', 'confirmed']"
-                                groups="group_notary_user"/>
+                                invisible="state not in ['draft', 'confirmed']"/>
 
                         <button name="action_cancel" string="إلغاء" type="object"
-                                invisible="state in ['finalized', 'cancelled']"
-                                groups="group_notary_manager"/>
+                                class="btn-secondary"
+                                invisible="state in ['finalized', 'cancelled']"/>
 
                         <button name="action_draft" string="إرجاع للمسودة" type="object"
-                                invisible="state != 'cancelled'"
-                                groups="group_notary_manager"/>
+                                invisible="state != 'cancelled'"/>
 
                         <!-- Statusbar -->
                         <field name="state" widget="statusbar"
@@ -233,11 +228,7 @@
                                 </div>
                                 <div class="o_kanban_card_footer">
                                     <div>
-                                        <img t-att-src="kanban_image('res.users', 'avatar_128', record.notary_id.raw_value)"
-                                             t-att-title="record.notary_id.value"
-                                             t-att-alt="record.notary_id.value"
-                                             class="oe_avatar" style="width: 24px; height: 24px; border-radius: 50%;"/>
-                                        <span class="ms-1"><field name="notary_id"/></span>
+                                        <field name="notary_id" widget="many2one_avatar_user"/>
                                     </div>
                                 </div>
                             </div>

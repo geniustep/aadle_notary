@@ -264,21 +264,55 @@ class NotaryDocument(models.Model):
 
         documents = super().create(vals_list)
 
-        # إنشاء فاتورة تلقائياً لكل وثيقة
-        for document in documents:
-            if not document.invoice_id:
-                document._create_invoice()
+        # لا يتم إنشاء الفاتورة تلقائياً - سيتم إنشاؤها عند التأكيد
+        # for document in documents:
+        #     if not document.invoice_id:
+        #         document._create_invoice()
 
         return documents
 
     def write(self, vals):
-        """التحقق من الصلاحيات عند التعديل"""
+        """التحقق من الصلاحيات عند التعديل وتحديث الفاتورة"""
+        # حفظ السعر القديم قبل التحديث
+        old_prices = {}
+        if 'price' in vals:
+            for record in self:
+                old_prices[record.id] = record.price
+        
         for record in self:
             # منع التعديل على وثيقة مُتمة
             if record.state == 'finalized' and not self.env.user.has_group('aadle_notary.group_notary_admin'):
                 raise UserError(_('لا يمكن تعديل وثيقة مُتمة!'))
 
-        return super().write(vals)
+        # حفظ التغييرات أولاً
+        result = super().write(vals)
+        
+        # تحديث السعر في الفاتورة بعد حفظ التغييرات
+        if 'price' in vals:
+            for record in self:
+                if record.invoice_id and record.invoice_id.invoice_line_ids:
+                    new_price = record.price  # السعر الجديد بعد الحفظ
+                    invoice = record.invoice_id
+                    invoice_line = invoice.invoice_line_ids[0]
+                    old_price = invoice_line.price_unit
+                    
+                    # تحديث السعر فقط إذا تغير
+                    if new_price != old_price:
+                        # تحديث السعر في سطر الفاتورة
+                        invoice_line.write({'price_unit': new_price})
+                        
+                        # إعادة حساب الفاتورة
+                        invoice._onchange_invoice_line_ids()
+                        if hasattr(invoice, '_recompute_tax_lines'):
+                            invoice._recompute_tax_lines()
+                        if hasattr(invoice, '_recompute_payment_terms_lines'):
+                            invoice._recompute_payment_terms_lines()
+                        
+                        # إضافة رسالة
+                        record.message_post(body=_('تم تحديث السعر في الفاتورة من %s إلى %s') % (old_price, new_price))
+                        invoice.message_post(body=_('تم تحديث السعر من الوثيقة: %s') % record.name)
+        
+        return result
 
     def unlink(self):
         """التحقق من الصلاحيات عند الحذف"""
@@ -290,17 +324,36 @@ class NotaryDocument(models.Model):
     # ============ Action Methods ============
 
     def action_confirm(self):
-        """تأكيد الوثيقة"""
+        """تأكيد الوثيقة وإنشاء وتأكيد الفاتورة"""
         for record in self:
             if record.state != 'draft':
                 raise UserError(_('يمكن تأكيد الوثائق في حالة المسودة فقط!'))
 
-            # التحقق من اكتمال البيانات
-            if not record.data or not record.partner_id:
-                raise UserError(_('يجب إدخال بيانات الوثيقة والزبون قبل التأكيد!'))
+            # التحقق من اكتمال البيانات الأساسية
+            if not record.partner_id:
+                raise UserError(_('يجب اختيار الزبون قبل التأكيد!'))
+            
+            if not record.document_type_id:
+                raise UserError(_('يجب اختيار نوع الوثيقة قبل التأكيد!'))
+            
+            # البيانات JSON اختيارية - فقط التحقق من وجودها إذا كانت مطلوبة
+            # (يمكن إضافة التحقق الإضافي حسب نوع الوثيقة لاحقاً)
 
+            # إنشاء الفاتورة إذا لم تكن موجودة
+            if not record.invoice_id:
+                record._create_invoice()
+            
+            # تأكيد الفاتورة
+            if record.invoice_id:
+                if record.invoice_id.state == 'draft':
+                    record.invoice_id.action_post()
+                    record.message_post(body=_('تم تأكيد الوثيقة وإنشاء وتأكيد الفاتورة'))
+                else:
+                    record.message_post(body=_('تم تأكيد الوثيقة'))
+            else:
+                record.message_post(body=_('تم تأكيد الوثيقة'))
+            
             record.state = 'confirmed'
-            record.message_post(body=_('تم تأكيد الوثيقة'))
 
     def action_finalize(self):
         """إتمام الوثيقة"""
@@ -371,17 +424,34 @@ class NotaryDocument(models.Model):
         if not journal:
             raise UserError(_('لا يوجد journal مبيعات! يرجى إنشاء واحد أولاً.'))
 
-        # البحث عن حساب الدخل
-        income_account = self.env['account.account'].search([
+        # البحث عن حساب الدخل (البحث ثم التصفية حسب الشركة)
+        # في Odoo 18، account.account لا يحتوي على company_id مباشرة
+        income_accounts = self.env['account.account'].search([
             ('account_type', '=', 'income'),
-            ('company_id', '=', self.company_id.id)
-        ], limit=1)
+            ('deprecated', '=', False)
+        ], limit=10)
+        
+        # تصفية حسب الشركة
+        income_account = income_accounts.filtered(
+            lambda a: self.company_id.id in a.company_ids.ids
+        )[:1]
 
         if not income_account:
             # محاولة الحصول على أي حساب income_other
-            income_account = self.env['account.account'].search([
+            income_other_accounts = self.env['account.account'].search([
                 ('account_type', '=', 'income_other'),
-                ('company_id', '=', self.company_id.id)
+                ('deprecated', '=', False)
+            ], limit=10)
+            
+            income_account = income_other_accounts.filtered(
+                lambda a: self.company_id.id in a.company_ids.ids
+            )[:1]
+        
+        # إذا لم نجد حساب مرتبط بالشركة، نبحث عن أي حساب income
+        if not income_account:
+            income_account = self.env['account.account'].search([
+                ('account_type', 'in', ['income', 'income_other']),
+                ('deprecated', '=', False)
             ], limit=1)
 
         if not income_account:
