@@ -9,8 +9,7 @@
         <menuitem id="menu_notary_root"
                   name="النظام العدلي"
                   sequence="10"
-                  web_icon="aadle_notary,static/description/icon.png"
-                  groups="group_notary_user"/>
+                  web_icon="aadle_notary,static/description/icon.png"/>
 
         <!-- ============================================ -->
         <!-- Main Menus -->
@@ -20,15 +19,13 @@
         <menuitem id="menu_notary_documents"
                   name="الوثائق"
                   parent="menu_notary_root"
-                  sequence="10"
-                  groups="group_notary_user"/>
+                  sequence="10"/>
 
         <!-- قائمة الإعدادات -->
         <menuitem id="menu_notary_configuration"
                   name="الإعدادات"
                   parent="menu_notary_root"
-                  sequence="90"
-                  groups="group_notary_manager"/>
+                  sequence="90"/>
 
         <!-- ============================================ -->
         <!-- Document Sub-Menus -->
@@ -39,32 +36,28 @@
                   name="كل الوثائق"
                   parent="menu_notary_documents"
                   action="action_notary_document"
-                  sequence="10"
-                  groups="group_notary_user"/>
+                  sequence="10"/>
 
         <!-- الوثائق - المسودات -->
         <menuitem id="menu_notary_document_draft"
                   name="المسودات"
                   parent="menu_notary_documents"
                   action="action_notary_document_draft"
-                  sequence="20"
-                  groups="group_notary_user"/>
+                  sequence="20"/>
 
         <!-- الوثائق - المؤكدة -->
         <menuitem id="menu_notary_document_confirmed"
                   name="المؤكدة"
                   parent="menu_notary_documents"
                   action="action_notary_document_confirmed"
-                  sequence="30"
-                  groups="group_notary_user"/>
+                  sequence="30"/>
 
         <!-- الوثائق - المُتمة -->
         <menuitem id="menu_notary_document_finalized"
                   name="المُتمة"
                   parent="menu_notary_documents"
                   action="action_notary_document_finalized"
-                  sequence="40"
-                  groups="group_notary_user"/>
+                  sequence="40"/>
 
         <!-- ============================================ -->
         <!-- Configuration Sub-Menus -->
@@ -75,8 +68,7 @@
                   name="أنواع الوثائق"
                   parent="menu_notary_configuration"
                   action="action_notary_document_type"
-                  sequence="10"
-                  groups="group_notary_manager"/>
+                  sequence="10"/>
 
     </data>
 </odoo>

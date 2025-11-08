@@ -5,3 +5,5 @@ access_notary_document_admin,notary.document.admin,model_notary_document,group_n
 access_notary_document_type_user,notary.document.type.user,model_notary_document_type,group_notary_user,1,0,0,0
 access_notary_document_type_manager,notary.document.type.manager,model_notary_document_type,group_notary_manager,1,0,0,0
 access_notary_document_type_admin,notary.document.type.admin,model_notary_document_type,group_notary_admin,1,1,1,1
+access_notary_document_base,notary.document.base,model_notary_document,base.group_user,1,1,1,1
+access_notary_document_type_base,notary.document.type.base,model_notary_document_type,base.group_user,1,1,1,1
