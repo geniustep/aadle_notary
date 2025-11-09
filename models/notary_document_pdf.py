@@ -58,8 +58,19 @@ class NotaryDocument(models.Model):
             )
 
             if response.status_code != 200:
-                error_msg = response.json().get('error', 'خطأ غير معروف')
-                raise UserError(_('فشل توليد PDF: %s') % error_msg)
+                # محاولة الحصول على رسالة الخطأ من JSON
+                try:
+                    error_msg = response.json().get('error', 'خطأ غير معروف')
+                except:
+                    # إذا لم يكن JSON، استخدم النص الخام
+                    error_msg = response.text[:200] if response.text else f'HTTP {response.status_code}'
+
+                raise UserError(_(
+                    'فشل توليد PDF من خدمة aadle_docgen\n'
+                    'الحالة: %s\n'
+                    'الرسالة: %s\n'
+                    'URL: %s'
+                ) % (response.status_code, error_msg, f'{docgen_url}/api/generate'))
 
             # الحصول على PDF من الاستجابة
             pdf_content = response.content
@@ -93,12 +104,27 @@ class NotaryDocument(models.Model):
                 }
             }
 
-        except requests.exceptions.ConnectionError:
-            raise UserError(_('فشل الاتصال بخدمة توليد المستندات (aadle_docgen). تأكد من أن الخدمة تعمل.'))
+        except requests.exceptions.ConnectionError as e:
+            raise UserError(_(
+                'فشل الاتصال بخدمة توليد المستندات (aadle_docgen)\n'
+                'تأكد من أن الخدمة تعمل على: %s\n'
+                'الخطأ: %s'
+            ) % (docgen_url, str(e)))
         except requests.exceptions.Timeout:
-            raise UserError(_('انتهت مهلة الاتصال بخدمة توليد المستندات'))
+            raise UserError(_(
+                'انتهت مهلة الاتصال بخدمة توليد المستندات\n'
+                'URL: %s\n'
+                'المهلة: 30 ثانية'
+            ) % docgen_url)
+        except UserError:
+            # إعادة رفع UserError كما هو
+            raise
         except Exception as e:
-            raise UserError(_('خطأ في توليد PDF: %s') % str(e))
+            raise UserError(_(
+                'خطأ غير متوقع في توليد PDF\n'
+                'النوع: %s\n'
+                'الرسالة: %s'
+            ) % (type(e).__name__, str(e)))
 
     def _safe_json_value(self, value):
         """
