@@ -104,12 +104,31 @@ class NotaryDocument(models.Model):
         """
         تحويل القيمة إلى format آمن لـ JSON
         """
-        if value is None or value is False:
-            return ''
+        # None و False يتم تحويلهما إلى فارغ
+        if value is None:
+            return None
+        if value is False:
+            return False
+
+        # الأنواع الأساسية JSON-safe
         if isinstance(value, (int, float, str, bool)):
             return value
-        if hasattr(value, 'strftime'):  # date, datetime objects
+
+        # كائنات التاريخ والوقت (date, datetime)
+        if hasattr(value, 'strftime'):
             return value.strftime('%Y-%m-%d')
+
+        # كائنات Odoo recordsets/models
+        if hasattr(value, '_name') and hasattr(value, 'ensure_one'):
+            # هذا recordset من Odoo
+            if len(value) == 1:
+                return value.name if hasattr(value, 'name') else str(value)
+            elif len(value) > 1:
+                return ', '.join([rec.name if hasattr(rec, 'name') else str(rec) for rec in value])
+            else:
+                return ''
+
+        # أي شيء آخر نحوله إلى string
         return str(value)
 
     def _sanitize_data_for_json(self, data):
