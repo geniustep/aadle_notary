@@ -34,7 +34,11 @@ class NotaryDocument(models.Model):
 
         # الحصول على URL لخدمة aadle_docgen من الإعدادات
         ICP = self.env['ir.config_parameter'].sudo()
-        docgen_url = ICP.get_param('aadle.docgen_url', 'http://localhost:5000')
+        primary_url = ICP.get_param('aadle.docgen_url', 'https://docgen.aadle.com')
+        fallback_url = ICP.get_param('aadle.docgen_fallback_url', 'http://64.226.110.81:5000')
+
+        # قائمة الـ URLs للتجربة بالترتيب
+        docgen_urls = [primary_url, fallback_url]
 
         # تحضير البيانات للإرسال إلى aadle_docgen
         document_data = self._prepare_document_data_for_pdf()
@@ -49,82 +53,89 @@ class NotaryDocument(models.Model):
             'format': 'pdf',
         }
 
-        try:
-            # استدعاء خدمة aadle_docgen
-            response = requests.post(
-                f'{docgen_url}/api/generate',
-                json=request_data,
-                timeout=30
-            )
+        # متغيرات لحفظ آخر خطأ
+        last_error = None
+        last_url = None
 
-            if response.status_code != 200:
-                # محاولة الحصول على رسالة الخطأ من JSON
-                try:
-                    error_msg = response.json().get('error', 'خطأ غير معروف')
-                except:
-                    # إذا لم يكن JSON، استخدم النص الخام
-                    error_msg = response.text[:200] if response.text else f'HTTP {response.status_code}'
+        # محاولة كل URL بالترتيب
+        for docgen_url in docgen_urls:
+            try:
+                full_url = f'{docgen_url}/api/generate'
 
-                raise UserError(_(
-                    'فشل توليد PDF من خدمة aadle_docgen\n'
-                    'الحالة: %s\n'
-                    'الرسالة: %s\n'
-                    'URL: %s'
-                ) % (response.status_code, error_msg, f'{docgen_url}/api/generate'))
+                # استدعاء خدمة aadle_docgen
+                response = requests.post(
+                    full_url,
+                    json=request_data,
+                    timeout=30
+                )
 
-            # الحصول على PDF من الاستجابة
-            pdf_content = response.content
+                if response.status_code == 200:
+                    # نجح! نكمل العملية
+                    break
+                else:
+                    # فشل، نجرب التالي
+                    try:
+                        error_msg = response.json().get('error', 'خطأ غير معروف')
+                    except:
+                        error_msg = response.text[:200] if response.text else f'HTTP {response.status_code}'
 
-            # حساب Hash للملف
-            file_hash = hashlib.sha256(pdf_content).hexdigest()
+                    last_error = f'HTTP {response.status_code}: {error_msg}'
+                    last_url = full_url
+                    continue
 
-            # توليد QR Code للتحقق
-            qr_data = self._generate_qr_data(file_hash)
-            qr_code_data = self._generate_qr_code(qr_data)
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                # خطأ في الاتصال، نجرب التالي
+                last_error = str(e)
+                last_url = f'{docgen_url}/api/generate'
+                continue
 
-            # تحديد اسم الملف
-            pdf_filename = f"{self.name}.pdf"
+            except Exception as e:
+                # خطأ آخر، نجرب التالي
+                last_error = f'{type(e).__name__}: {str(e)}'
+                last_url = f'{docgen_url}/api/generate'
+                continue
 
-            # حفظ البيانات
-            self.write({
-                'pdf_file': base64.b64encode(pdf_content),
-                'pdf_filename': pdf_filename,
-                'file_hash': file_hash,
-                'qr_code': qr_code_data,
-            })
-
-            return {
-                'type': 'ir.actions.client',
-                'tag': 'display_notification',
-                'params': {
-                    'title': _('نجح'),
-                    'message': _('تم توليد ملف PDF بنجاح'),
-                    'type': 'success',
-                    'sticky': False,
-                }
-            }
-
-        except requests.exceptions.ConnectionError as e:
+        # التحقق من نجاح أحد الـ URLs
+        if response.status_code != 200:
             raise UserError(_(
-                'فشل الاتصال بخدمة توليد المستندات (aadle_docgen)\n'
-                'تأكد من أن الخدمة تعمل على: %s\n'
-                'الخطأ: %s'
-            ) % (docgen_url, str(e)))
-        except requests.exceptions.Timeout:
-            raise UserError(_(
-                'انتهت مهلة الاتصال بخدمة توليد المستندات\n'
+                'فشل توليد PDF من جميع خوادم aadle_docgen\n'
+                'آخر خطأ:\n'
                 'URL: %s\n'
-                'المهلة: 30 ثانية'
-            ) % docgen_url)
-        except UserError:
-            # إعادة رفع UserError كما هو
-            raise
-        except Exception as e:
-            raise UserError(_(
-                'خطأ غير متوقع في توليد PDF\n'
-                'النوع: %s\n'
-                'الرسالة: %s'
-            ) % (type(e).__name__, str(e)))
+                'الخطأ: %s\n\n'
+                'الخوادم المجربة: %s'
+            ) % (last_url, last_error, ', '.join(docgen_urls)))
+
+        # الحصول على PDF من الاستجابة
+        pdf_content = response.content
+
+        # حساب Hash للملف
+        file_hash = hashlib.sha256(pdf_content).hexdigest()
+
+        # توليد QR Code للتحقق
+        qr_data = self._generate_qr_data(file_hash)
+        qr_code_data = self._generate_qr_code(qr_data)
+
+        # تحديد اسم الملف
+        pdf_filename = f"{self.name}.pdf"
+
+        # حفظ البيانات
+        self.write({
+            'pdf_file': base64.b64encode(pdf_content),
+            'pdf_filename': pdf_filename,
+            'file_hash': file_hash,
+            'qr_code': qr_code_data,
+        })
+
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _('نجح'),
+                'message': _('تم توليد ملف PDF بنجاح'),
+                'type': 'success',
+                'sticky': False,
+            }
+        }
 
     def _safe_json_value(self, value):
         """
