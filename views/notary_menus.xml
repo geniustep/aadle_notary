@@ -35,28 +35,28 @@
         <menuitem id="menu_notary_document_all"
                   name="كل الوثائق"
                   parent="menu_notary_documents"
-                  action="action_notary_document"
+                  action="aadle_notary.action_notary_document"
                   sequence="10"/>
 
         <!-- الوثائق - المسودات -->
         <menuitem id="menu_notary_document_draft"
                   name="المسودات"
                   parent="menu_notary_documents"
-                  action="action_notary_document_draft"
+                  action="aadle_notary.action_notary_document_draft"
                   sequence="20"/>
 
         <!-- الوثائق - المؤكدة -->
         <menuitem id="menu_notary_document_confirmed"
                   name="المؤكدة"
                   parent="menu_notary_documents"
-                  action="action_notary_document_confirmed"
+                  action="aadle_notary.action_notary_document_confirmed"
                   sequence="30"/>
 
         <!-- الوثائق - المُتمة -->
         <menuitem id="menu_notary_document_finalized"
                   name="المُتمة"
                   parent="menu_notary_documents"
-                  action="action_notary_document_finalized"
+                  action="aadle_notary.action_notary_document_finalized"
                   sequence="40"/>
 
         <!-- ============================================ -->
@@ -67,7 +67,7 @@
         <menuitem id="menu_notary_document_types"
                   name="أنواع الوثائق"
                   parent="menu_notary_configuration"
-                  action="action_notary_document_type"
+                  action="aadle_notary.action_notary_document_type"
                   sequence="10"/>
 
     </data>

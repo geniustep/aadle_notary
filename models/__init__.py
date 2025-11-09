@@ -7,3 +7,4 @@ from . import notary_document_type
 from . import notary_document
 from . import res_partner
 from . import account_move
+from . import notary_document_pdf

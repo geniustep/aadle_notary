@@ -481,32 +481,8 @@ class NotaryDocument(models.Model):
 
         return invoice
 
-    def action_generate_pdf(self):
-        """
-        توليد PDF للوثيقة
-        TODO: التكامل مع aadle_docgen
-        """
-        self.ensure_one()
-
-        # Placeholder للتكامل المستقبلي مع aadle_docgen
-        # هنا سيتم استدعاء API لتوليد PDF
-
-        raise UserError(_(
-            'توليد PDF: قيد التطوير\n'
-            'سيتم التكامل مع نظام aadle_docgen لتوليد الوثائق'
-        ))
-
-        # مثال على الكود المستقبلي:
-        # response = requests.post(
-        #     'http://aadle-docgen-api/generate',
-        #     json={
-        #         'template_id': self.document_type_id.template_id,
-        #         'data': self.data,
-        #     }
-        # )
-        # self.pdf_file = response.content
-        # self.pdf_filename = f'{self.name}.pdf'
-        # self.file_hash = hashlib.sha256(response.content).hexdigest()
+    # تم نقل method action_generate_pdf إلى notary_document_pdf.py
+    # حيث يتم التكامل الكامل مع aadle_docgen service
 
     def action_calculate_inheritance(self):
         """

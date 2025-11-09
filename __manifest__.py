@@ -35,6 +35,13 @@
         'account',
         'contacts',
     ],
+    'external_dependencies': {
+        'python': [
+            'requests>=2.31.0',
+            'qrcode[pil]>=7.4.2',
+            'Pillow>=10.0.0',
+        ],
+    },
     'data': [
         # Security
         'security/notary_security.xml',
@@ -47,6 +54,7 @@
         # Views
         'views/notary_document_type_views.xml',
         'views/notary_document_views.xml',
+        'views/notary_document_views_pdf_enhancement.xml',
         'views/notary_menus.xml',
     ],
     'demo': [],

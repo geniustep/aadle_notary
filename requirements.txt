@@ -1,0 +1,10 @@
+# Dependencies required for PDF generation in Odoo backend
+# يجب تثبيت هذه المكتبات في بيئة Odoo
+
+# مكتبة طلبات HTTP للاتصال بـ aadle_docgen
+requests>=2.31.0
+
+# مكتبة توليد QR Code
+qrcode[pil]>=7.4.2
+Pillow>=10.0.0
+

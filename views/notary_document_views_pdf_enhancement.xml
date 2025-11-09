@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!--
+            تحسينات PDF للوثائق
+            هذا الملف يضيف تحسينات على views الموجودة
+        -->
+
+        <!-- تحسين زر توليد PDF في form view -->
+        <record id="view_notary_document_form_inherit_pdf_button" model="ir.ui.view">
+            <field name="name">notary.document.form.inherit.pdf.button</field>
+            <field name="model">notary.document</field>
+            <field name="inherit_id" ref="aadle_notary.view_notary_document_form"/>
+            <field name="arch" type="xml">
+                <!-- تحديث زر توليد PDF في header -->
+                <xpath expr="//button[@name='action_generate_pdf']" position="replace">
+                    <button name="action_generate_pdf"
+                            type="object"
+                            string="توليد PDF"
+                            class="oe_highlight"
+                            invisible="state == 'cancelled' or pdf_file"
+                            icon="fa-file-pdf-o"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- تحسين tab الملف في form view -->
+        <record id="view_notary_document_form_inherit_pdf_tab" model="ir.ui.view">
+            <field name="name">notary.document.form.inherit.pdf.tab</field>
+            <field name="model">notary.document</field>
+            <field name="inherit_id" ref="aadle_notary.view_notary_document_form"/>
+            <field name="arch" type="xml">
+                <!-- تحسين tab الملف الموجود -->
+                <xpath expr="//page[@name='file']" position="inside">
+                    <!-- رسالة إذا لم يكن هناك PDF -->
+                    <div invisible="has_pdf"
+                         class="alert alert-info mt-3"
+                         role="alert">
+                        <p class="mb-0">
+                            <i class="fa fa-info-circle"/> 
+                            لم يتم توليد ملف PDF بعد. يمكنك توليده الآن بالضغط على زر "توليد PDF" في الأعلى.
+                        </p>
+                    </div>
+                </xpath>
+
+                <!-- تحسين عرض QR Code - سيتم عرضه كـ text field (base64 string) -->
+                <!-- ملاحظة: QR Code يتم حفظه كـ base64 string في Char field -->
+                <!-- يمكن تحويله إلى Binary field لاحقاً لعرضه كصورة -->
+            </field>
+        </record>
+
+        <!-- إضافة decoration في list view -->
+        <record id="view_notary_document_list_inherit_pdf" model="ir.ui.view">
+            <field name="name">notary.document.list.inherit.pdf</field>
+            <field name="model">notary.document</field>
+            <field name="inherit_id" ref="aadle_notary.view_notary_document_list"/>
+            <field name="arch" type="xml">
+                <!-- إضافة decoration للوثائق التي لها PDF -->
+                <xpath expr="//list" position="attributes">
+                    <attribute name="decoration-success">has_pdf == True</attribute>
+                </xpath>
+
+                <!-- إضافة عمود PDF filename بعد state -->
+                <xpath expr="//field[@name='state']" position="after">
+                    <field name="pdf_filename" string="ملف PDF" optional="hide"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- إضافة filters في search view -->
+        <record id="view_notary_document_search_inherit_pdf" model="ir.ui.view">
+            <field name="name">notary.document.search.inherit.pdf</field>
+            <field name="model">notary.document</field>
+            <field name="inherit_id" ref="aadle_notary.view_notary_document_search"/>
+            <field name="arch" type="xml">
+                <xpath expr="//separator[last()]" position="after">
+                    <separator/>
+                    <filter string="لها PDF" name="has_pdf" domain="[('pdf_file', '!=', False)]"/>
+                    <filter string="بدون PDF" name="no_pdf" domain="[('pdf_file', '=', False)]"/>
+                </xpath>
+            </field>
+        </record>
+
+    </data>
+</odoo>
+

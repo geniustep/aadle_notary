@@ -42,6 +42,11 @@
         <!-- ============================================ -->
         <!-- Record Rules (قواعد الوصول) -->
         <!-- ============================================ -->
+        <!--
+            ملاحظة: notary_document_pdf.py يوسع notary.document (_inherit)
+            لذلك قواعد الوصول هنا تنطبق تلقائياً على جميع الحقول والطرق في notary_document_pdf.py
+            بما في ذلك: pdf_file, pdf_filename, file_hash, qr_code, action_generate_pdf
+        -->
 
         <!-- Rule 1: العدل يرى وثائقه فقط -->
         <record id="notary_document_rule_user" model="ir.rule">
