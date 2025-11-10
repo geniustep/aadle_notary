@@ -7,163 +7,58 @@
     <template id="report_marriage_contract_document">
         <t t-call="web.html_container">
             <t t-foreach="docs" t-as="o">
-                <t t-call="web.external_layout">
-                    <div class="page" style="direction: rtl; font-family: 'Scheherazade New', 'Amiri', serif;">
+                <div class="page" style="direction: rtl;">
 
-                        <style>
-                            @page {
-                                size: A4;
-                                margin: 1.5cm;
-                            }
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&amp;family=Cairo:wght@400;600;700&amp;display=swap');
 
-                            * {
-                                margin: 0;
-                                padding: 0;
-                                box-sizing: border-box;
-                            }
+                        @page {
+                            size: A4;
+                            margin: 0.8cm 1cm;
+                        }
 
-                            body {
-                                font-family: 'Scheherazade New', 'Amiri', serif;
-                                line-height: 2;
-                                color: #2C1810;
-                                background: #fdfbf7;
-                            }
+                        * {
+                            margin: 0;
+                            padding: 0;
+                            box-sizing: border-box;
+                        }
 
-                            .container {
-                                background: #ffffff;
-                                padding: 25px;
-                                position: relative;
-                                border: 4px solid #8B6914;
-                                box-shadow: inset 0 0 0 2px #D4AF37, inset 0 0 0 6px #8B6914;
-                            }
+                        body {
+                            font-family: 'Amiri', 'Cairo', serif;
+                            line-height: 1.6;
+                            color: #2C1810;
+                            background: #fdfbf7;
+                        }
 
-                            /* الزخرفة المغربية في الزوايا */
-                            .corner-decoration {
-                                position: absolute;
-                                width: 80px;
-                                height: 80px;
-                                border: 3px solid #8B6914;
-                            }
+                        .container {
+                            background: #ffffff;
+                            padding: 15px;
+                            position: relative;
+                            border: 4px solid #8B6914;
+                            box-shadow: inset 0 0 0 2px #D4AF37, inset 0 0 0 6px #8B6914;
+                        }
 
-                            .corner-decoration::before,
-                            .corner-decoration::after {
-                                content: '';
-                                position: absolute;
-                                background: #8B6914;
-                            }
-
-                            .top-left {
-                                top: -4px;
-                                left: -4px;
-                                border-bottom: none;
-                                border-right: none;
-                            }
-
-                            .top-left::before {
-                                top: 15px;
-                                left: 15px;
-                                width: 50px;
-                                height: 3px;
-                                transform: rotate(45deg);
-                            }
-
-                            .top-left::after {
-                                top: 15px;
-                                left: 15px;
-                                width: 3px;
-                                height: 50px;
-                                transform: rotate(45deg);
-                            }
-
-                            .top-right {
-                                top: -4px;
-                                right: -4px;
-                                border-bottom: none;
-                                border-left: none;
-                            }
-
-                            .top-right::before {
-                                top: 15px;
-                                right: 15px;
-                                width: 50px;
-                                height: 3px;
-                                transform: rotate(-45deg);
-                            }
-
-                            .top-right::after {
-                                top: 15px;
-                                right: 15px;
-                                width: 3px;
-                                height: 50px;
-                                transform: rotate(-45deg);
-                            }
-
-                            .bottom-left {
-                                bottom: -4px;
-                                left: -4px;
-                                border-top: none;
-                                border-right: none;
-                            }
-
-                            .bottom-left::before {
-                                bottom: 15px;
-                                left: 15px;
-                                width: 50px;
-                                height: 3px;
-                                transform: rotate(-45deg);
-                            }
-
-                            .bottom-left::after {
-                                bottom: 15px;
-                                left: 15px;
-                                width: 3px;
-                                height: 50px;
-                                transform: rotate(-45deg);
-                            }
-
-                            .bottom-right {
-                                bottom: -4px;
-                                right: -4px;
-                                border-top: none;
-                                border-left: none;
-                            }
-
-                            .bottom-right::before {
-                                bottom: 15px;
-                                right: 15px;
-                                width: 50px;
-                                height: 3px;
-                                transform: rotate(45deg);
-                            }
-
-                            .bottom-right::after {
-                                bottom: 15px;
-                                right: 15px;
-                                width: 3px;
-                                height: 50px;
-                                transform: rotate(45deg);
-                            }
 
                             .header {
                                 display: flex;
                                 justify-content: space-between;
                                 align-items: flex-start;
-                                margin-bottom: 20px;
-                                padding-bottom: 15px;
-                                border-bottom: 3px double #8B6914;
+                                margin-bottom: 10px;
+                                padding-bottom: 8px;
+                                border-bottom: 2px double #8B6914;
                                 position: relative;
                             }
 
                             .header::after {
                                 content: '✦';
                                 position: absolute;
-                                bottom: -12px;
+                                bottom: -9px;
                                 left: 50%;
                                 transform: translateX(-50%);
                                 background: #fff;
-                                padding: 0 10px;
+                                padding: 0 8px;
                                 color: #8B6914;
-                                font-size: 20px;
+                                font-size: 14px;
                             }
 
                             .header-right {
@@ -174,35 +69,35 @@
                             .header-left {
                                 text-align: left;
                                 flex: 1;
-                                padding-top: 10px;
+                                padding-top: 5px;
                             }
 
                             .kingdom {
-                                font-size: 24px;
+                                font-size: 16px;
                                 font-weight: 700;
                                 color: #8B6914;
-                                margin-bottom: 8px;
+                                margin-bottom: 4px;
                                 text-shadow: 1px 1px 2px rgba(139, 105, 20, 0.3);
                             }
 
                             .ministry {
-                                font-size: 20px;
+                                font-size: 14px;
                                 font-weight: 700;
                                 color: #C04000;
-                                margin-bottom: 10px;
-                            }
-
-                            .court-info {
-                                font-size: 16px;
-                                color: #4A4A4A;
                                 margin-bottom: 5px;
                             }
 
-                            .document-info {
-                                font-size: 15px;
+                            .court-info {
+                                font-size: 12px;
                                 color: #4A4A4A;
-                                margin-bottom: 6px;
-                                padding: 4px 0;
+                                margin-bottom: 3px;
+                            }
+
+                            .document-info {
+                                font-size: 11px;
+                                color: #4A4A4A;
+                                margin-bottom: 3px;
+                                padding: 2px 0;
                             }
 
                             .document-info .label {
@@ -211,14 +106,14 @@
                             }
 
                             .title {
-                                font-size: 32px;
+                                font-size: 20px;
                                 font-weight: 700;
                                 color: #8B6914;
                                 text-align: center;
-                                margin: 25px 0;
-                                padding: 12px;
-                                border-top: 3px solid #8B6914;
-                                border-bottom: 3px solid #8B6914;
+                                margin: 10px 0;
+                                padding: 8px;
+                                border-top: 2px solid #8B6914;
+                                border-bottom: 2px solid #8B6914;
                                 position: relative;
                                 background: linear-gradient(to right, transparent, rgba(212, 175, 55, 0.1), transparent);
                             }
@@ -226,46 +121,46 @@
                             .title::before {
                                 content: '❋';
                                 position: absolute;
-                                right: 20px;
+                                right: 15px;
                                 color: #D4AF37;
-                                font-size: 28px;
+                                font-size: 18px;
                             }
 
                             .title::after {
                                 content: '❋';
                                 position: absolute;
-                                left: 20px;
+                                left: 15px;
                                 color: #D4AF37;
-                                font-size: 28px;
+                                font-size: 18px;
                             }
 
                             .separator {
                                 text-align: center;
                                 color: #8B6914;
                                 font-weight: 700;
-                                margin: 18px 0;
-                                font-size: 20px;
-                                letter-spacing: 2px;
+                                margin: 8px 0;
+                                font-size: 12px;
+                                letter-spacing: 1px;
                             }
 
                             .content {
                                 text-align: right;
-                                font-size: 18px;
-                                line-height: 2.2;
-                                margin-bottom: 15px;
-                                text-indent: 30px;
+                                font-size: 12px;
+                                line-height: 1.5;
+                                margin-bottom: 8px;
+                                text-indent: 20px;
                             }
 
                             .section-title {
-                                font-size: 22px;
+                                font-size: 14px;
                                 font-weight: 700;
                                 color: #8B6914;
-                                margin: 20px 0 12px 0;
+                                margin: 10px 0 6px 0;
                                 text-align: center;
-                                padding: 10px;
+                                padding: 5px;
                                 background: linear-gradient(to right, transparent, rgba(212, 175, 55, 0.15), transparent);
-                                border-right: 5px solid #8B6914;
-                                border-left: 5px solid #8B6914;
+                                border-right: 3px solid #8B6914;
+                                border-left: 3px solid #8B6914;
                                 position: relative;
                             }
 
@@ -273,14 +168,15 @@
                             .section-title::after {
                                 content: '◆';
                                 color: #D4AF37;
-                                margin: 0 10px;
+                                margin: 0 8px;
+                                font-size: 12px;
                             }
 
                             .info-block {
-                                margin: 15px 0;
-                                padding: 18px 25px;
+                                margin: 8px 0;
+                                padding: 10px 15px;
                                 background: linear-gradient(to left, rgba(212, 175, 55, 0.05), transparent);
-                                border-right: 4px solid #D4AF37;
+                                border-right: 3px solid #D4AF37;
                                 position: relative;
                             }
 
@@ -307,9 +203,9 @@
                             }
 
                             .info-line {
-                                margin: 10px 0;
-                                font-size: 17px;
-                                line-height: 2;
+                                margin: 4px 0;
+                                font-size: 11px;
+                                line-height: 1.4;
                             }
 
                             .label {
@@ -320,7 +216,7 @@
                             .value {
                                 color: #2C1810;
                                 display: inline-block;
-                                margin-right: 10px;
+                                margin-right: 5px;
                             }
 
                             .highlight {
@@ -330,11 +226,11 @@
 
                             .blessing {
                                 text-align: center;
-                                font-size: 22px;
+                                font-size: 13px;
                                 font-weight: 700;
                                 color: #8B6914;
-                                margin: 25px 0;
-                                padding: 15px;
+                                margin: 10px 0;
+                                padding: 8px;
                                 background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(139, 105, 20, 0.1));
                                 border: 2px solid #D4AF37;
                                 border-radius: 5px;
@@ -344,36 +240,36 @@
                             .blessing::before {
                                 content: '✿';
                                 position: absolute;
-                                right: 15px;
-                                font-size: 24px;
+                                right: 10px;
+                                font-size: 16px;
                                 color: #D4AF37;
                             }
 
                             .blessing::after {
                                 content: '✿';
                                 position: absolute;
-                                left: 15px;
-                                font-size: 24px;
+                                left: 10px;
+                                font-size: 16px;
                                 color: #D4AF37;
                             }
 
                             .signatures {
-                                margin-top: 30px;
+                                margin-top: 10px;
                                 display: grid;
                                 grid-template-columns: 1fr 1fr;
-                                gap: 30px;
-                                padding: 20px 0;
+                                gap: 15px;
+                                padding: 10px 0;
                             }
 
                             .signature-box {
                                 text-align: center;
-                                padding: 15px;
+                                padding: 5px;
                             }
 
                             .signature-label {
                                 font-weight: 700;
-                                font-size: 18px;
-                                margin-bottom: 35px;
+                                font-size: 11px;
+                                margin-bottom: 20px;
                                 color: #8B6914;
                             }
 
@@ -385,13 +281,13 @@
 
                             .quranic-verse {
                                 text-align: center;
-                                font-size: 19px;
+                                font-size: 12px;
                                 font-weight: 700;
                                 color: #8B6914;
-                                margin-top: 25px;
-                                padding: 18px;
-                                border-top: 3px double #8B6914;
-                                border-bottom: 3px double #8B6914;
+                                margin-top: 10px;
+                                padding: 10px;
+                                border-top: 2px double #8B6914;
+                                border-bottom: 2px double #8B6914;
                                 background: linear-gradient(to right, transparent, rgba(212, 175, 55, 0.08), transparent);
                                 position: relative;
                             }
@@ -399,23 +295,23 @@
                             .quranic-verse::before {
                                 content: '﴾';
                                 position: absolute;
-                                right: 15px;
-                                font-size: 32px;
+                                right: 10px;
+                                font-size: 20px;
                                 color: #D4AF37;
                             }
 
                             .quranic-verse::after {
                                 content: '﴿';
                                 position: absolute;
-                                left: 15px;
-                                font-size: 32px;
+                                left: 10px;
+                                font-size: 20px;
                                 color: #D4AF37;
                             }
 
                             .decorative-line {
-                                height: 2px;
+                                height: 1px;
                                 background: linear-gradient(to right, transparent, #D4AF37, transparent);
-                                margin: 15px 0;
+                                margin: 8px 0;
                             }
                         </style>
 
@@ -429,12 +325,6 @@
                         <t t-set="bride_name" t-value="data.get('bride_name', data.get('wife_name_ar', ''))"/>
 
                         <div class="container">
-                            <!-- الزخارف في الزوايا -->
-                            <div class="corner-decoration top-left"></div>
-                            <div class="corner-decoration top-right"></div>
-                            <div class="corner-decoration bottom-left"></div>
-                            <div class="corner-decoration bottom-right"></div>
-
                             <!-- الرأسية -->
                             <div class="header">
                                 <div class="header-right">
@@ -608,7 +498,6 @@
                             </div>
                         </div>
                     </div>
-                </t>
             </t>
         </t>
     </template>
