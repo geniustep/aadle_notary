@@ -59,6 +59,7 @@
         'views/notary_document_type_views.xml',
         'views/notary_document_views.xml',
         'views/notary_document_views_pdf_enhancement.xml',
+        'views/notary_marriage_contract_form.xml',
         'views/notary_menus.xml',
     ],
     'demo': [],

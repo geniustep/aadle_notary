@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================ -->
+    <!-- View Form موسّع لعقد الزواج -->
+    <!-- ============================================ -->
+
+    <record id="view_notary_document_marriage_form" model="ir.ui.view">
+        <field name="name">notary.document.marriage.form</field>
+        <field name="model">notary.document</field>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <form string="عقد زواج">
+                <header>
+                    <!-- Actions Buttons -->
+                    <button name="action_confirm" string="تأكيد" type="object"
+                            class="oe_highlight" invisible="state != 'draft'"/>
+
+                    <button name="action_finalize" string="إتمام" type="object"
+                            class="oe_highlight" invisible="state != 'confirmed'"/>
+
+                    <button name="action_generate_pdf" string="توليد PDF (aadle_docgen)" type="object"
+                            invisible="state not in ['draft', 'confirmed']"/>
+
+                    <button name="%(aadle_notary.action_report_marriage_contract)d" string="طباعة PDF (Odoo)" type="action"
+                            invisible="state not in ['draft', 'confirmed']"
+                            class="btn-primary"/>
+
+                    <button name="action_cancel" string="إلغاء" type="object"
+                            class="btn-secondary"
+                            invisible="state in ['finalized', 'cancelled']"/>
+
+                    <button name="action_draft" string="إرجاع للمسودة" type="object"
+                            invisible="state != 'cancelled'"/>
+
+                    <!-- Statusbar -->
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,confirmed,finalized"/>
+                </header>
+
+                <sheet>
+                    <!-- Ribbons -->
+                    <widget name="web_ribbon" title="ملغي" bg_color="text-bg-danger"
+                            invisible="state != 'cancelled'"/>
+                    <widget name="web_ribbon" title="مُتمّ" bg_color="text-bg-success"
+                            invisible="state != 'finalized'"/>
+
+                    <!-- Smart Buttons -->
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_invoice" type="object"
+                                class="oe_stat_button" icon="fa-pencil-square-o"
+                                invisible="not invoice_id">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_text">الفاتورة</span>
+                                <span class="o_stat_value">
+                                    <field name="invoice_state" widget="badge"/>
+                                </span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <group>
+                        <group string="المعلومات الأساسية">
+                            <field name="name" readonly="1"/>
+                            <field name="document_type_id"
+                                   options="{'no_create': True}"
+                                   readonly="state in ['finalized', 'cancelled']"/>
+                            <field name="partner_id"
+                                   options="{'no_create': True, 'no_quick_create': True}"
+                                   readonly="state in ['finalized', 'cancelled']"/>
+                            <field name="notary_id"
+                                   widget="many2one_avatar_user"
+                                   readonly="state in ['finalized', 'cancelled']"/>
+                            <field name="company_id"
+                                   groups="base.group_multi_company"
+                                   options="{'no_create': True}"
+                                   readonly="state in ['finalized', 'cancelled']"/>
+                        </group>
+
+                        <group string="التواريخ والسعر">
+                            <field name="date_created" readonly="state in ['finalized', 'cancelled']"/>
+                            <field name="date_finalized" readonly="1"/>
+                            <field name="price" widget="monetary"
+                                   readonly="state in ['finalized', 'cancelled']"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <!-- Tab: بيانات عقد الزواج -->
+                        <page string="📝 جميع بيانات عقد الزواج" name="marriage_data">
+                            <group>
+                                <div class="alert alert-info" role="alert">
+                                    <h4>💡 دليل إدخال البيانات</h4>
+                                    <p>املأ الحقول أدناه باستخدام JSON format. انسخ المثال أدناه وعدّل القيم:</p>
+                                    <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; direction: ltr; text-align: left;">
+{
+  "court_name": "محكمة الرباط الابتدائية",
+  "court_type": "الابتدائية",
+  "court_city": "الرباط",
+
+  "document_page": "123",
+  "document_registry": "456",
+
+  "notary_second": "علي بن سعيد",
+
+  "memo_number": "2025/123",
+  "memo_record": "456",
+  "memo_page": "78",
+
+  "authorization_number": "2025/567",
+  "authorization_date": "2025-11-05",
+
+  "file_number": "2025/789",
+
+  "groom_name": "خالد بن عبدالله بن محمد",
+  "groom_national_id": "AB123456",
+  "groom_birthplace": "الرباط",
+  "groom_district": "حسان",
+  "groom_province": "الرباط-سلا-القنيطرة",
+  "groom_birth_year": "1990",
+  "groom_father": "عبدالله بن محمد",
+  "groom_mother": "فاطمة بنت أحمد",
+  "groom_birth_certificate": "123/2025",
+  "groom_commune": "جماعة الرباط",
+  "groom_occupation": "موظف",
+  "groom_marital_status": "أعزب",
+  "groom_certificate_number": "456/2025",
+  "groom_certificate_commune": "جماعة الرباط",
+  "groom_certificate_province": "الرباط-سلا-القنيطرة",
+  "groom_address": "شارع محمد الخامس، الرباط",
+
+  "bride_name": "نورة بنت سعد بن علي",
+  "bride_birthplace": "الدار البيضاء",
+  "bride_district": "عين الشق",
+  "bride_birth_year": "1995",
+  "bride_father": "سعد بن علي",
+  "bride_mother": "هدى بنت خالد",
+  "bride_birth_certificate": "789/2025",
+  "bride_commune": "جماعة الدار البيضاء",
+  "bride_residence_certificate": "234/2025",
+  "bride_leadership": "قيادة عين الشق",
+  "bride_occupation": "معلمة",
+  "bride_marital_status": "عزباء",
+  "bride_certificate_number": "567/2025",
+  "bride_certificate_commune": "جماعة الدار البيضاء",
+  "bride_certificate_district": "عين الشق",
+  "bride_address": "شارع الحسن الثاني، الدار البيضاء",
+  "bride_province": "الدار البيضاء-سطات",
+
+  "dowry_total": 50000,
+  "dowry_amount_text": "خمسون ألف درهم",
+
+  "witness1_name": "محمد بن أحمد",
+  "witness1_national_id": "CD789012",
+  "witness2_name": "علي بن سالم",
+  "witness2_national_id": "EF345678"
+}
+                                    </pre>
+                                    <p><strong>📚 للمزيد من التفاصيل:</strong> راجع ملف <code>MARRIAGE_CONTRACT_FIELDS.md</code> في جذر المشروع</p>
+                                </div>
+                            </group>
+
+                            <group string="بيانات الوثيقة (JSON)">
+                                <field name="data" widget="ace"
+                                       options="{'mode': 'json'}"
+                                       nolabel="1"
+                                       readonly="state in ['finalized', 'cancelled']"
+                                       placeholder="{'key': 'value'}"/>
+                            </group>
+                        </page>
+
+                        <!-- Tab: دليل الحقول -->
+                        <page string="📖 دليل الحقول" name="fields_guide">
+                            <group>
+                                <div style="padding: 20px;">
+                                    <h3>📊 قائمة جميع الحقول المتاحة</h3>
+
+                                    <h4>🏛️ بيانات المحكمة (3 حقول)</h4>
+                                    <ul>
+                                        <li><code>court_name</code> - اسم المحكمة</li>
+                                        <li><code>court_type</code> - نوع المحكمة (الابتدائية، الاستئنافية، إلخ)</li>
+                                        <li><code>court_city</code> - مدينة المحكمة</li>
+                                    </ul>
+
+                                    <h4>📄 بيانات الوثيقة (2 حقل)</h4>
+                                    <ul>
+                                        <li><code>document_page</code> - رقم الصفحة</li>
+                                        <li><code>document_registry</code> - رقم كناش الأملاك</li>
+                                    </ul>
+
+                                    <h4>👨‍⚖️ بيانات العدول (1 حقل)</h4>
+                                    <ul>
+                                        <li><code>notary_second</code> - اسم العدل الثاني</li>
+                                    </ul>
+
+                                    <h4>📝 بيانات المذكرة (3 حقول)</h4>
+                                    <ul>
+                                        <li><code>memo_number</code> - رقم المذكرة</li>
+                                        <li><code>memo_record</code> - رقم السجل</li>
+                                        <li><code>memo_page</code> - صفحة المذكرة</li>
+                                    </ul>
+
+                                    <h4>✅ بيانات الترخيص (2 حقل)</h4>
+                                    <ul>
+                                        <li><code>authorization_number</code> - رقم الإذن</li>
+                                        <li><code>authorization_date</code> - تاريخ الإذن</li>
+                                    </ul>
+
+                                    <h4>📁 رقم الملف (1 حقل)</h4>
+                                    <ul>
+                                        <li><code>file_number</code> - رقم ملف مستندات الزواج</li>
+                                    </ul>
+
+                                    <h4>👨 بيانات الزوج (17 حقل)</h4>
+                                    <ul>
+                                        <li><code>groom_name</code> - الاسم الكامل</li>
+                                        <li><code>groom_national_id</code> - رقم البطاقة الوطنية</li>
+                                        <li><code>groom_birthplace</code> - مكان الميلاد</li>
+                                        <li><code>groom_district</code> - الدائرة</li>
+                                        <li><code>groom_province</code> - العمالة/الإقليم</li>
+                                        <li><code>groom_birth_year</code> - سنة الميلاد</li>
+                                        <li><code>groom_father</code> - اسم الأب</li>
+                                        <li><code>groom_mother</code> - اسم الأم</li>
+                                        <li><code>groom_birth_certificate</code> - رقم عقد الميلاد</li>
+                                        <li><code>groom_commune</code> - الجماعة</li>
+                                        <li><code>groom_occupation</code> - المهنة</li>
+                                        <li><code>groom_marital_status</code> - الحالة العائلية</li>
+                                        <li><code>groom_certificate_number</code> - رقم الشهادة الإدارية</li>
+                                        <li><code>groom_certificate_commune</code> - جماعة الشهادة</li>
+                                        <li><code>groom_certificate_province</code> - إقليم الشهادة</li>
+                                        <li><code>groom_address</code> - العنوان</li>
+                                    </ul>
+
+                                    <h4>👰 بيانات الزوجة (18 حقل)</h4>
+                                    <ul>
+                                        <li><code>bride_name</code> - الاسم الكامل</li>
+                                        <li><code>bride_birthplace</code> - مكان الميلاد</li>
+                                        <li><code>bride_district</code> - الدائرة</li>
+                                        <li><code>bride_birth_year</code> - سنة الميلاد</li>
+                                        <li><code>bride_father</code> - اسم الأب</li>
+                                        <li><code>bride_mother</code> - اسم الأم</li>
+                                        <li><code>bride_birth_certificate</code> - رقم عقد الميلاد</li>
+                                        <li><code>bride_commune</code> - الجماعة</li>
+                                        <li><code>bride_residence_certificate</code> - رقم شهادة السكنى</li>
+                                        <li><code>bride_leadership</code> - القيادة</li>
+                                        <li><code>bride_occupation</code> - المهنة</li>
+                                        <li><code>bride_marital_status</code> - الحالة العائلية</li>
+                                        <li><code>bride_certificate_number</code> - رقم الشهادة الإدارية</li>
+                                        <li><code>bride_certificate_commune</code> - جماعة الشهادة</li>
+                                        <li><code>bride_certificate_district</code> - دائرة الشهادة</li>
+                                        <li><code>bride_address</code> - العنوان</li>
+                                        <li><code>bride_province</code> - الإقليم</li>
+                                    </ul>
+
+                                    <h4>💰 بيانات المهر (2 حقل)</h4>
+                                    <ul>
+                                        <li><code>dowry_total</code> - المبلغ الإجمالي (رقماً)</li>
+                                        <li><code>dowry_amount_text</code> - المبلغ (كتابة) - اختياري، سيتم تحويله تلقائياً</li>
+                                    </ul>
+
+                                    <h4>👥 بيانات الشهود (4 حقول)</h4>
+                                    <ul>
+                                        <li><code>witness1_name</code> - اسم الشاهد الأول</li>
+                                        <li><code>witness1_national_id</code> - بطاقته الوطنية</li>
+                                        <li><code>witness2_name</code> - اسم الشاهد الثاني</li>
+                                        <li><code>witness2_national_id</code> - بطاقته الوطنية</li>
+                                    </ul>
+
+                                    <hr/>
+                                    <p><strong>المجموع:</strong> 55+ حقل</p>
+                                    <p><strong>ملاحظة:</strong> جميع الحقول اختيارية. املأ فقط الحقول المتوفرة لديك.</p>
+                                </div>
+                            </group>
+                        </page>
+
+                        <!-- Tab: ملاحظات -->
+                        <page string="ملاحظات" name="notes">
+                            <field name="notes" nolabel="1"
+                                   placeholder="ملاحظات إضافية..."
+                                   readonly="state in ['finalized', 'cancelled']"/>
+                        </page>
+
+                        <!-- Tab: السجل (Chatter) -->
+                        <page string="السجل" name="history">
+                            <field name="message_ids" widget="mail_thread"/>
+                        </page>
+                    </notebook>
+                </sheet>
+
+                <!-- Chatter -->
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action للفتح مباشرة بالـ view الجديد -->
+    <record id="action_notary_document_marriage" model="ir.actions.act_window">
+        <field name="name">عقود الزواج</field>
+        <field name="res_model">notary.document</field>
+        <field name="view_mode">tree,form,kanban</field>
+        <field name="domain">[('document_type_id.code', '=', 'marriage_contract')]</field>
+        <field name="context">{
+            'default_document_type_id': ref('aadle_notary.document_type_marriage_contract'),
+            'form_view_ref': 'aadle_notary.view_notary_document_marriage_form',
+        }</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                إنشاء عقد زواج جديد
+            </p>
+            <p>
+                انقر على "إنشاء" لإضافة عقد زواج جديد
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu Item -->
+    <menuitem
+        id="menu_notary_marriage_contracts"
+        name="عقود الزواج"
+        parent="aadle_notary.menu_notary_documents"
+        action="action_notary_document_marriage"
+        sequence="11"/>
+
+</odoo>
