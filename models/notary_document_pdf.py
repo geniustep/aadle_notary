@@ -426,13 +426,113 @@ class NotaryDocument(models.Model):
 
     def _prepare_marriage_contract_data(self):
         """
-        تحضير بيانات خاصة بعقد الزواج
+        تحضير بيانات خاصة بعقد الزواج - متوافق مع القالب المغربي
         """
         self.ensure_one()
         data = self.data or {}
 
         # تحضير البيانات مع تنظيف التواريخ
         result = {
+            # ========== معلومات المحكمة ==========
+            'court': {
+                'name': data.get('court_name', self.company_id.name if self.company_id else ''),
+                'type': data.get('court_type', 'الابتدائية'),
+                'city': data.get('court_city', self.company_id.city if self.company_id else ''),
+            },
+
+            # ========== معلومات الوثيقة ==========
+            'document': {
+                'number': self.name or '',
+                'page': data.get('document_page', ''),
+                'registry': data.get('document_registry', ''),
+                'date': self._safe_json_value(self.date_created),
+            },
+
+            # ========== معلومات العدول ==========
+            'notary': {
+                'first': data.get('notary_first', self.notary_id.name if self.notary_id else ''),
+                'second': data.get('notary_second', ''),
+            },
+
+            # ========== معلومات المذكرة ==========
+            'memo': {
+                'number': data.get('memo_number', ''),
+                'record': data.get('memo_record', ''),
+                'page': data.get('memo_page', ''),
+            },
+
+            # ========== معلومات الوقت ==========
+            'time': {
+                'hour': data.get('time_hour', self._get_current_time_hour()),
+                'period': data.get('time_period', self._get_current_time_period()),
+            },
+
+            # ========== معلومات التاريخ ==========
+            'date': {
+                'day': data.get('date_day', self._get_day_name()),
+                'hijri': data.get('date_hijri', self._get_hijri_date()),
+                'gregorian': data.get('date_gregorian', self._safe_json_value(self.date_created)),
+            },
+
+            # ========== معلومات الترخيص ==========
+            'authorization': {
+                'number': data.get('authorization_number', ''),
+                'date': self._safe_json_value(data.get('authorization_date', '')),
+            },
+
+            # ========== معلومات الملف ==========
+            'file': {
+                'number': data.get('file_number', ''),
+            },
+
+            # ========== بيانات الزوج (groom) ==========
+            'groom': {
+                'name': data.get('groom_name', data.get('husband_name_ar', '')),
+                'birthplace': data.get('groom_birthplace', data.get('husband_birthplace', '')),
+                'district': data.get('groom_district', ''),
+                'province': data.get('groom_province', ''),
+                'birth_year': data.get('groom_birth_year', self._extract_year(data.get('husband_birthdate', ''))),
+                'father': data.get('groom_father', data.get('husband_father_name', '')),
+                'mother': data.get('groom_mother', data.get('husband_mother_name', '')),
+                'birth_certificate': data.get('groom_birth_certificate', ''),
+                'commune': data.get('groom_commune', ''),
+                'national_id': data.get('groom_national_id', data.get('husband_national_id', '')),
+                'occupation': data.get('groom_occupation', ''),
+                'marital_status': data.get('groom_marital_status', 'أعزب'),
+                'certificate_number': data.get('groom_certificate_number', ''),
+                'certificate_commune': data.get('groom_certificate_commune', ''),
+                'certificate_province': data.get('groom_certificate_province', ''),
+                'address': data.get('groom_address', data.get('husband_address', '')),
+            },
+
+            # ========== بيانات الزوجة (bride) ==========
+            'bride': {
+                'name': data.get('bride_name', data.get('wife_name_ar', '')),
+                'birthplace': data.get('bride_birthplace', data.get('wife_birthplace', '')),
+                'district': data.get('bride_district', ''),
+                'birth_year': data.get('bride_birth_year', self._extract_year(data.get('wife_birthdate', ''))),
+                'father': data.get('bride_father', data.get('wife_father_name', '')),
+                'mother': data.get('bride_mother', data.get('wife_mother_name', '')),
+                'birth_certificate': data.get('bride_birth_certificate', ''),
+                'commune': data.get('bride_commune', ''),
+                'residence_certificate': data.get('bride_residence_certificate', ''),
+                'leadership': data.get('bride_leadership', ''),
+                'occupation': data.get('bride_occupation', ''),
+                'marital_status': data.get('bride_marital_status', 'عزباء'),
+                'certificate_number': data.get('bride_certificate_number', ''),
+                'certificate_commune': data.get('bride_certificate_commune', ''),
+                'certificate_district': data.get('bride_certificate_district', ''),
+                'address': data.get('bride_address', data.get('wife_address', '')),
+                'province': data.get('bride_province', ''),
+            },
+
+            # ========== بيانات المهر (dowry) ==========
+            'dowry': {
+                'amount_text': data.get('dowry_amount_text', self._number_to_arabic_text(data.get('dowry_total', 0))),
+                'amount_number': self._safe_json_value(data.get('dowry_total', 0)),
+            },
+
+            # ========== البيانات القديمة للتوافق مع الأنظمة القديمة ==========
             # بيانات الزوج
             'husband_name_ar': data.get('husband_name_ar', ''),
             'husband_name_fr': data.get('husband_name_fr', ''),
@@ -461,7 +561,7 @@ class NotaryDocument(models.Model):
             'witness2_name': data.get('witness2_name', ''),
             'witness2_national_id': data.get('witness2_national_id', ''),
 
-            # بيانات المهر
+            # بيانات المهر (النسخة القديمة)
             'dowry_total': self._safe_json_value(data.get('dowry_total', 0)),
             'dowry_paid': self._safe_json_value(data.get('dowry_paid', 0)),
             'dowry_remaining': self._safe_json_value(
@@ -532,6 +632,169 @@ class NotaryDocument(models.Model):
             address_parts.append(company.country_id.name)
 
         return ', '.join(address_parts)
+
+    def _get_current_time_hour(self):
+        """
+        الحصول على الساعة الحالية
+        """
+        from datetime import datetime
+        now = datetime.now()
+        return now.strftime('%I:%M')  # صيغة 12 ساعة
+
+    def _get_current_time_period(self):
+        """
+        الحصول على فترة اليوم (صباحا/مساء)
+        """
+        from datetime import datetime
+        now = datetime.now()
+        hour = now.hour
+
+        if hour < 12:
+            return 'صباحا'
+        else:
+            return 'مساء'
+
+    def _get_day_name(self):
+        """
+        الحصول على اسم اليوم بالعربية
+        """
+        from datetime import datetime
+
+        # أيام الأسبوع بالعربية
+        arabic_days = {
+            0: 'الاثنين',
+            1: 'الثلاثاء',
+            2: 'الأربعاء',
+            3: 'الخميس',
+            4: 'الجمعة',
+            5: 'السبت',
+            6: 'الأحد',
+        }
+
+        today = datetime.now().weekday()
+        return arabic_days.get(today, '')
+
+    def _get_hijri_date(self):
+        """
+        الحصول على التاريخ الهجري
+        ملاحظة: يتطلب تثبيت مكتبة hijri-converter
+        pip install hijri-converter
+        """
+        try:
+            from hijri_converter import Gregorian
+            from datetime import datetime
+
+            now = datetime.now()
+            hijri = Gregorian(now.year, now.month, now.day).to_hijri()
+
+            # أسماء الشهور الهجرية
+            hijri_months = [
+                '', 'محرم', 'صفر', 'ربيع الأول', 'ربيع الثاني', 'جمادى الأولى',
+                'جمادى الثانية', 'رجب', 'شعبان', 'رمضان', 'شوال',
+                'ذو القعدة', 'ذو الحجة'
+            ]
+
+            month_name = hijri_months[hijri.month] if hijri.month <= len(hijri_months) else ''
+            return f'{hijri.day} {month_name} {hijri.year}'
+
+        except ImportError:
+            # إذا لم تكن المكتبة مثبتة، نرجع تنسيق افتراضي
+            _logger.warning("hijri-converter library not installed. Install it with: pip install hijri-converter")
+            return 'يرجى تثبيت hijri-converter'
+        except Exception as e:
+            _logger.error(f"Error converting to Hijri date: {str(e)}")
+            return ''
+
+    def _extract_year(self, date_value):
+        """
+        استخراج السنة من تاريخ
+        """
+        if not date_value:
+            return ''
+
+        # إذا كان string
+        if isinstance(date_value, str):
+            # محاولة استخراج السنة من التاريخ بصيغة YYYY-MM-DD
+            if len(date_value) >= 4:
+                return date_value[:4]
+
+        # إذا كان date أو datetime
+        if hasattr(date_value, 'year'):
+            return str(date_value.year)
+
+        return ''
+
+    def _number_to_arabic_text(self, number):
+        """
+        تحويل رقم إلى نص عربي
+        مثال: 50000 => خمسون ألف
+        """
+        try:
+            number = float(number)
+
+            # للأرقام الصغيرة، يمكنك إضافة منطق التحويل الكامل
+            # هنا نستخدم تحويل بسيط
+
+            ones = ['', 'واحد', 'اثنان', 'ثلاثة', 'أربعة', 'خمسة', 'ستة', 'سبعة', 'ثمانية', 'تسعة']
+            tens = ['', 'عشرة', 'عشرون', 'ثلاثون', 'أربعون', 'خمسون', 'ستون', 'سبعون', 'ثمانون', 'تسعون']
+            hundreds = ['', 'مئة', 'مئتان', 'ثلاثمئة', 'أربعمئة', 'خمسمئة', 'ستمئة', 'سبعمئة', 'ثمانمئة', 'تسعمئة']
+
+            if number == 0:
+                return 'صفر'
+
+            if number < 0:
+                return 'سالب ' + self._number_to_arabic_text(abs(number))
+
+            # تحويل بسيط للأرقام الشائعة
+            num_int = int(number)
+
+            # للأرقام الكبيرة، نستخدم تنسيق بسيط
+            if num_int >= 1000000:
+                millions = num_int // 1000000
+                rest = num_int % 1000000
+                result = self._number_to_arabic_text(millions) + ' مليون'
+                if rest > 0:
+                    result += ' و' + self._number_to_arabic_text(rest)
+                return result
+
+            if num_int >= 1000:
+                thousands = num_int // 1000
+                rest = num_int % 1000
+                result = self._number_to_arabic_text(thousands) + ' ألف'
+                if rest > 0:
+                    result += ' و' + self._number_to_arabic_text(rest)
+                return result
+
+            if num_int >= 100:
+                hundred = num_int // 100
+                rest = num_int % 100
+                result = hundreds[hundred]
+                if rest > 0:
+                    result += ' و' + self._number_to_arabic_text(rest)
+                return result
+
+            if num_int >= 20:
+                ten = num_int // 10
+                rest = num_int % 10
+                result = tens[ten]
+                if rest > 0:
+                    result += ' و' + ones[rest]
+                return result
+
+            if num_int >= 11:
+                # الأعداد من 11 إلى 19
+                special = ['', 'أحد عشر', 'اثنا عشر', 'ثلاثة عشر', 'أربعة عشر', 'خمسة عشر',
+                          'ستة عشر', 'سبعة عشر', 'ثمانية عشر', 'تسعة عشر']
+                return special[num_int - 10]
+
+            if num_int == 10:
+                return 'عشرة'
+
+            return ones[num_int]
+
+        except Exception as e:
+            _logger.error(f"Error converting number to Arabic text: {str(e)}")
+            return str(number)
 
     def _generate_qr_data(self, file_hash):
         """
