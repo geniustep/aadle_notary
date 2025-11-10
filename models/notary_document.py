@@ -159,6 +159,18 @@ class NotaryDocument(models.Model):
         help='هل تم توليد ملف PDF للوثيقة'
     )
 
+    pdf_file_size = fields.Integer(
+        string='حجم الملف (بايت)',
+        compute='_compute_pdf_file_size',
+        help='حجم ملف PDF بالبايت'
+    )
+
+    pdf_file_size_display = fields.Char(
+        string='حجم الملف',
+        compute='_compute_pdf_file_size',
+        help='حجم ملف PDF بشكل منسق'
+    )
+
     # ============ الفاتورة ============
 
     invoice_id = fields.Many2one(
@@ -214,6 +226,34 @@ class NotaryDocument(models.Model):
         """التحقق من وجود ملف PDF"""
         for record in self:
             record.has_pdf = bool(record.pdf_file or record.pdf_url)
+
+    @api.depends('pdf_file')
+    def _compute_pdf_file_size(self):
+        """حساب حجم ملف PDF"""
+        import base64
+        for record in self:
+            if record.pdf_file:
+                try:
+                    # فك تشفير base64 وحساب الحجم
+                    decoded = base64.b64decode(record.pdf_file)
+                    size_bytes = len(decoded)
+                    record.pdf_file_size = size_bytes
+                    
+                    # تنسيق الحجم
+                    if size_bytes < 1024:
+                        record.pdf_file_size_display = f"{size_bytes} بايت"
+                    elif size_bytes < 1024 * 1024:
+                        size_kb = size_bytes / 1024
+                        record.pdf_file_size_display = f"{size_kb:.2f} KB"
+                    else:
+                        size_mb = size_bytes / (1024 * 1024)
+                        record.pdf_file_size_display = f"{size_mb:.2f} MB"
+                except Exception:
+                    record.pdf_file_size = 0
+                    record.pdf_file_size_display = "غير متاح"
+            else:
+                record.pdf_file_size = 0
+                record.pdf_file_size_display = ""
 
     @api.depends('invoice_id', 'invoice_id.payment_state')
     def _compute_is_invoice_paid(self):

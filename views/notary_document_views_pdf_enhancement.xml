@@ -42,6 +42,14 @@
                         </p>
                     </div>
                 </xpath>
+                
+                <!-- إضافة حجم الملف تحت اسم الملف -->
+                <xpath expr="//field[@name='pdf_filename']" position="after">
+                    <div invisible="not has_pdf" class="text-muted mt-1 mb-2">
+                        <i class="fa fa-file-o"/> 
+                        <field name="pdf_file_size_display" readonly="1" nolabel="1"/>
+                    </div>
+                </xpath>
 
                 <!-- تحسين عرض QR Code - سيتم عرضه كـ text field (base64 string) -->
                 <!-- ملاحظة: QR Code يتم حفظه كـ base64 string في Char field -->

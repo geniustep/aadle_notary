@@ -8,9 +8,12 @@ import base64
 import hashlib
 import qrcode
 import requests
+import logging
 from io import BytesIO
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
+
+_logger = logging.getLogger(__name__)
 
 
 class NotaryDocument(models.Model):
@@ -25,116 +28,322 @@ class NotaryDocument(models.Model):
     def action_generate_pdf(self):
         """
         توليد ملف PDF للوثيقة باستخدام aadle_docgen service
+        يدعم FastAPI الجديد و Flask القديم
         """
         self.ensure_one()
 
+        _logger.info("=" * 80)
+        _logger.info(f"[PDF Generation] بدء عملية توليد PDF للوثيقة ID: {self.id}, Name: {self.name}")
+        _logger.info(f"[PDF Generation] حالة الوثيقة: {self.state}")
+        _logger.info(f"[PDF Generation] نوع الوثيقة: {self.document_type_id.name if self.document_type_id else 'غير محدد'}")
+
         # التحقق من أن الوثيقة مؤكدة
         if self.state not in ['confirmed', 'finalized']:
+            _logger.warning(f"[PDF Generation] فشل: الوثيقة ليست مؤكدة (الحالة: {self.state})")
             raise UserError(_('لا يمكن توليد PDF إلا للوثائق المؤكدة أو المكتملة'))
 
         # الحصول على URL لخدمة aadle_docgen من الإعدادات
         ICP = self.env['ir.config_parameter'].sudo()
         primary_url = ICP.get_param('aadle.docgen_url', 'https://docgen.aadle.com')
-        fallback_url = ICP.get_param('aadle.docgen_fallback_url', 'http://64.226.110.81:5000')
+        fallback_url = ICP.get_param('aadle.docgen_fallback_url', '')
 
-        # قائمة الـ URLs للتجربة بالترتيب
-        docgen_urls = [primary_url, fallback_url]
+        # الحصول على معلومات authentication
+        api_key = ICP.get_param('aadle.docgen_api_key', '')
+        api_token = ICP.get_param('aadle.docgen_api_token', '')
+        auth_type = ICP.get_param('aadle.docgen_auth_type', 'bearer')  # 'bearer' or 'api_key'
+
+        _logger.info(f"[PDF Generation] إعدادات الخادم:")
+        _logger.info(f"[PDF Generation]   - Primary URL: {primary_url}")
+        _logger.info(f"[PDF Generation]   - Fallback URL: {fallback_url or 'غير محدد'}")
+        _logger.info(f"[PDF Generation]   - Auth Type: {auth_type}")
+        _logger.info(f"[PDF Generation]   - API Key موجود: {'نعم' if api_key else 'لا'}")
+        _logger.info(f"[PDF Generation]   - API Token موجود: {'نعم' if api_token else 'لا'}")
+
+        # دالة مساعدة للحصول على session token من جلسة المستخدم الحالي
+        def get_session_token():
+            """الحصول على session token من جلسة المستخدم الحالي في Odoo"""
+            try:
+                # محاولة 1: من HTTP request (عند الاستدعاء من الويب)
+                from odoo import http
+                if hasattr(http, 'request') and http.request:
+                    session_id = getattr(http.request.session, 'session_id', None)
+                    if session_id:
+                        return session_id
+            except Exception:
+                pass
+
+            try:
+                # محاولة 2: من context إذا كان متاحاً
+                if self.env.context.get('session_id'):
+                    return self.env.context.get('session_id')
+            except Exception:
+                pass
+
+            # محاولة 3: من request object مباشرة
+            try:
+                import odoo.http as http_module
+                request = getattr(http_module, 'request', None)
+                if request and hasattr(request, 'session'):
+                    return getattr(request.session, 'session_id', None)
+            except Exception:
+                pass
+
+            return None
+
+        # قائمة الـ URLs للتجربة بالترتيب (إزالة التكرار)
+        docgen_urls = []
+        for url in [primary_url, fallback_url]:
+            if url and url.strip() and url.strip() not in docgen_urls:
+                docgen_urls.append(url.strip())
+
+        # إذا لم تكن هناك خوادم، استخدم الافتراضي
+        if not docgen_urls:
+            docgen_urls = ['https://docgen.aadle.com']
 
         # تحضير البيانات للإرسال إلى aadle_docgen
+        _logger.info(f"[PDF Generation] تحضير بيانات الوثيقة...")
         document_data = self._prepare_document_data_for_pdf()
+        _logger.info(f"[PDF Generation] تم تحضير البيانات: {len(str(document_data))} حرف")
 
-        # تحديد نوع القالب بناءً على نوع الوثيقة
-        template_name = self._get_template_name()
+        # الحصول على template_id من نوع الوثيقة
+        if not self.document_type_id:
+            _logger.error(f"[PDF Generation] ❌ فشل: نوع الوثيقة غير محدد")
+            raise UserError(_('يجب تحديد نوع الوثيقة أولاً'))
+        
+        # محاولة استخدام template_id من قاعدة البيانات أولاً
+        template_id = self.document_type_id.template_id
+        template_name_fallback = self._get_template_name()
+        
+        # إذا لم يكن template_id موجوداً، استخدم template_name كـ fallback
+        if not template_id:
+            _logger.warning(f"[PDF Generation] ⚠️  template_id غير موجود، استخدام template_name: {template_name_fallback}")
+            template_id = template_name_fallback
+        else:
+            _logger.info(f"[PDF Generation] ✅ template_id: {template_id}")
 
         # تنظيف إضافي للبيانات قبل الإرسال (ضمان JSON serialization)
-        request_data = {
-            'template': template_name,
-            'data': self._sanitize_data_for_json(document_data),
-            'format': 'pdf',
-        }
+        _logger.info(f"[PDF Generation] تم تنظيف البيانات للـ JSON")
+        sanitized_data = self._sanitize_data_for_json(document_data)
 
         # متغيرات لحفظ آخر خطأ
         last_error = None
         last_url = None
+        response = None
+        success = False
 
         # محاولة كل URL بالترتيب
-        for docgen_url in docgen_urls:
+        _logger.info(f"[PDF Generation] بدء محاولة الاتصال بالخوادم ({len(docgen_urls)} خادم)")
+        for idx, docgen_url in enumerate(docgen_urls, 1):
             try:
-                full_url = f'{docgen_url}/api/generate'
+                # تنظيف URL
+                docgen_url = docgen_url.strip().rstrip('/')
+                _logger.info(f"[PDF Generation] محاولة {idx}/{len(docgen_urls)}: {docgen_url}")
 
-                # استدعاء خدمة aadle_docgen
+                # تحديد endpoint و payload بناءً على نوع الخادم
+                # FastAPI الجديد (docgen.aadle.com)
+                # API الصحيح: POST /docs/render (حسب OpenAPI schema)
+                if 'docgen.aadle.com' in docgen_url:
+                    endpoint = f'{docgen_url}/docs/render'
+                    payload = {
+                        'template_id': template_id,
+                        'data': sanitized_data,
+                        'include_qr': True,
+                        'include_signature': True
+                    }
+                    _logger.info(f"[PDF Generation]   - نوع الخادم: FastAPI")
+                    _logger.info(f"[PDF Generation]   - Endpoint: {endpoint}")
+                    _logger.info(f"[PDF Generation]   - Template ID: {template_id}")
+                else:
+                    # Flask القديم (localhost:5000 أو IP:5000)
+                    endpoint = f'{docgen_url}/api/generate'
+                    payload = {
+                        'template': template_id,
+                        'data': sanitized_data,
+                        'format': 'pdf',
+                    }
+                    _logger.info(f"[PDF Generation]   - نوع الخادم: Flask")
+                    _logger.info(f"[PDF Generation]   - Endpoint: {endpoint}")
+                    _logger.info(f"[PDF Generation]   - Template: {template_id}")
+
+                # إعداد headers
+                headers = {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Odoo-Notary-Document/1.0',
+                    'Accept': 'application/json',
+                }
+
+                # إضافة authentication headers
+                if auth_type == 'bearer':
+                    # محاولة الحصول على session token من جلسة المستخدم الحالي
+                    current_session_token = get_session_token()
+                    _logger.info(f"[PDF Generation]   - Session Token: {'موجود' if current_session_token else 'غير موجود'}")
+
+                    # استخدام session token إذا كان متاحاً، وإلا استخدام api_token من الإعدادات
+                    token_to_use = current_session_token or api_token
+                    if token_to_use:
+                        headers['Authorization'] = f'Bearer {token_to_use}'
+                        _logger.info(f"[PDF Generation]   - استخدام Bearer Token")
+                elif auth_type == 'api_key' and api_key:
+                    headers['X-API-Key'] = api_key
+                    _logger.info(f"[PDF Generation]   - استخدام API Key")
+                elif api_key:  # fallback: استخدام api_key كـ Bearer token
+                    headers['Authorization'] = f'Bearer {api_key}'
+                    _logger.info(f"[PDF Generation]   - استخدام API Key كـ Bearer (fallback)")
+
+                # استدعاء خدمة aadle_docgen مع timeout أطول
+                _logger.info(f"[PDF Generation]   - إرسال الطلب إلى {endpoint}...")
                 response = requests.post(
-                    full_url,
-                    json=request_data,
-                    timeout=30
+                    endpoint,
+                    json=payload,
+                    headers=headers,
+                    timeout=(10, 60),  # (connect timeout, read timeout)
+                    verify=True  # التحقق من SSL
                 )
+                _logger.info(f"[PDF Generation]   - استجابة HTTP: {response.status_code}")
 
                 if response.status_code == 200:
                     # نجح! نكمل العملية
+                    _logger.info(f"[PDF Generation] ✅ نجح الاتصال بالخادم: {docgen_url}")
+                    success = True
                     break
                 else:
                     # فشل، نجرب التالي
                     try:
-                        error_msg = response.json().get('error', 'خطأ غير معروف')
+                        error_msg = response.json().get('error') or response.json().get('detail', 'خطأ غير معروف')
                     except:
                         error_msg = response.text[:200] if response.text else f'HTTP {response.status_code}'
-
                     last_error = f'HTTP {response.status_code}: {error_msg}'
-                    last_url = full_url
+                    last_url = endpoint
+                    _logger.warning(f"[PDF Generation] ❌ فشل الطلب: {last_error}")
                     continue
 
-            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-                # خطأ في الاتصال، نجرب التالي
-                last_error = str(e)
-                last_url = f'{docgen_url}/api/generate'
+            except requests.exceptions.SSLError as e:
+                last_error = f'SSL Error: {str(e)}'
+                last_url = docgen_url
+                _logger.error(f"[PDF Generation] ❌ خطأ SSL: {str(e)}")
                 continue
-
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                last_error = str(e)
+                last_url = docgen_url
+                _logger.error(f"[PDF Generation] ❌ خطأ اتصال/Timeout: {str(e)}")
+                continue
             except Exception as e:
-                # خطأ آخر، نجرب التالي
                 last_error = f'{type(e).__name__}: {str(e)}'
-                last_url = f'{docgen_url}/api/generate'
+                last_url = docgen_url
+                _logger.error(f"[PDF Generation] ❌ خطأ غير متوقع: {type(e).__name__}: {str(e)}", exc_info=True)
                 continue
 
         # التحقق من نجاح أحد الـ URLs
-        if response.status_code != 200:
-            raise UserError(_(
-                'فشل توليد PDF من جميع خوادم aadle_docgen\n'
-                'آخر خطأ:\n'
-                'URL: %s\n'
-                'الخطأ: %s\n\n'
-                'الخوادم المجربة: %s'
-            ) % (last_url, last_error, ', '.join(docgen_urls)))
+        if not success or not response or response.status_code != 200:
+            _logger.error(f"[PDF Generation] ❌ فشل توليد PDF من جميع الخوادم")
+            # تحسين رسالة الخطأ
+            error_details = []
+            error_details.append(_('فشل توليد PDF من جميع خوادم aadle_docgen'))
+            error_details.append('')
+            error_details.append(_('الخوادم المجربة:'))
+            for url in docgen_urls:
+                error_details.append(f'  - {url}')
+            error_details.append('')
+
+            if last_url and last_error:
+                error_details.append(_('آخر خطأ:'))
+                error_details.append(f'  URL: {last_url}')
+                error_details.append(f'  الخطأ: {last_error}')
+            else:
+                error_details.append(_('لم يتم الوصول إلى أي خادم'))
+
+            error_details.append('')
+            error_details.append(_('يرجى التحقق من:'))
+            error_details.append(_('  1. اتصال الإنترنت'))
+            error_details.append(_('  2. إعدادات aadle.docgen_url و aadle.docgen_fallback_url'))
+            error_details.append(_('  3. حالة الخوادم'))
+
+            # التحقق من authentication
+            current_session_token = get_session_token()
+            if current_session_token:
+                error_details.append(_('  4. ✅ Bearer Token: تم إرساله من جلسة المستخدم'))
+            elif api_token:
+                error_details.append(_('  4. ✅ Bearer Token: موجود في الإعدادات'))
+            elif api_key:
+                error_details.append(_('  4. ✅ API Key: موجود في الإعدادات'))
+            else:
+                error_details.append(_('  4. ⚠️  لا توجد معلومات authentication في الإعدادات'))
+
+            raise UserError('\n'.join(error_details))
 
         # الحصول على PDF من الاستجابة
-        pdf_content = response.content
+        _logger.info(f"[PDF Generation] معالجة استجابة الخادم...")
+        try:
+            response_data = response.json()
+            _logger.info(f"[PDF Generation] نوع الاستجابة: JSON")
+            
+            # FastAPI يرجع pdf_url و sha256، بينما Flask القديم يرجع PDF مباشرة
+            if 'pdf_url' in response_data:
+                # FastAPI - تحميل PDF من URL
+                pdf_url = response_data['pdf_url']
+                _logger.info(f"[PDF Generation] تحميل PDF من URL: {pdf_url}")
+                pdf_response = requests.get(pdf_url, timeout=30)
+                if pdf_response.status_code != 200:
+                    _logger.error(f"[PDF Generation] ❌ فشل تحميل PDF من URL: HTTP {pdf_response.status_code}")
+                    raise UserError(_('فشل تحميل PDF من الخادم'))
+                pdf_content = pdf_response.content
+                file_hash = response_data.get('sha256', hashlib.sha256(pdf_content).hexdigest())
+                _logger.info(f"[PDF Generation] ✅ تم تحميل PDF: {len(pdf_content)} بايت")
+            else:
+                # Flask القديم - PDF في الاستجابة مباشرة
+                _logger.info(f"[PDF Generation] PDF في الاستجابة مباشرة (Flask)")
+                pdf_content = response.content
+                file_hash = hashlib.sha256(pdf_content).hexdigest()
+                _logger.info(f"[PDF Generation] ✅ تم استخراج PDF: {len(pdf_content)} بايت")
+        except ValueError:
+            # إذا لم يكن JSON، افترض أن الاستجابة هي PDF مباشرة
+            _logger.info(f"[PDF Generation] الاستجابة ليست JSON، افتراض PDF مباشر")
+            pdf_content = response.content
+            file_hash = hashlib.sha256(pdf_content).hexdigest()
+            _logger.info(f"[PDF Generation] ✅ تم استخراج PDF: {len(pdf_content)} بايت")
 
-        # حساب Hash للملف
-        file_hash = hashlib.sha256(pdf_content).hexdigest()
+        # حساب Hash للملف (إذا لم يكن موجوداً)
+        if not file_hash:
+            file_hash = hashlib.sha256(pdf_content).hexdigest()
+        _logger.info(f"[PDF Generation] Hash الملف: {file_hash}")
 
         # توليد QR Code للتحقق
+        _logger.info(f"[PDF Generation] توليد QR Code...")
         qr_data = self._generate_qr_data(file_hash)
         qr_code_data = self._generate_qr_code(qr_data)
+        _logger.info(f"[PDF Generation] ✅ تم توليد QR Code")
 
         # تحديد اسم الملف
         pdf_filename = f"{self.name}.pdf"
+        _logger.info(f"[PDF Generation] اسم الملف: {pdf_filename}")
 
         # حفظ البيانات
+        _logger.info(f"[PDF Generation] حفظ البيانات في قاعدة البيانات...")
         self.write({
             'pdf_file': base64.b64encode(pdf_content),
             'pdf_filename': pdf_filename,
             'file_hash': file_hash,
             'qr_code': qr_code_data,
         })
+        _logger.info(f"[PDF Generation] ✅ تم حفظ البيانات بنجاح")
 
+        # إبطال التخزين المؤقت لضمان تحديث البيانات
+        self.invalidate_recordset(['pdf_file', 'pdf_filename', 'file_hash', 'qr_code'])
+
+        # إضافة رسالة في السجل (Chatter)
+        self.message_post(
+            body=_('تم توليد ملف PDF بنجاح: %s') % pdf_filename,
+            subject=_('توليد PDF'),
+        )
+        _logger.info(f"[PDF Generation] ✅ تم إضافة رسالة في Chatter")
+
+        _logger.info(f"[PDF Generation] ✅✅✅ تم إكمال عملية توليد PDF بنجاح! ✅✅✅")
+        _logger.info("=" * 80)
+
+        # إعادة تحميل الصفحة لعرض الملف مباشرة
         return {
             'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': _('نجح'),
-                'message': _('تم توليد ملف PDF بنجاح'),
-                'type': 'success',
-                'sticky': False,
-            }
+            'tag': 'reload',
         }
 
     def _safe_json_value(self, value):
@@ -256,7 +465,7 @@ class NotaryDocument(models.Model):
             'dowry_total': self._safe_json_value(data.get('dowry_total', 0)),
             'dowry_paid': self._safe_json_value(data.get('dowry_paid', 0)),
             'dowry_remaining': self._safe_json_value(
-                float(self._safe_json_value(data.get('dowry_total', 0))) - 
+                float(self._safe_json_value(data.get('dowry_total', 0))) -
                 float(self._safe_json_value(data.get('dowry_paid', 0)))
             ),
 
@@ -265,7 +474,7 @@ class NotaryDocument(models.Model):
             'marriage_place': data.get('marriage_place', ''),
             'notes': data.get('notes', ''),
         }
-        
+
         # تنظيف نهائي
         return self._sanitize_data_for_json(result)
 
@@ -281,7 +490,7 @@ class NotaryDocument(models.Model):
             'divorce_date': self._safe_json_value(data.get('divorce_date', '')),
             # أضف المزيد من الحقول حسب الحاجة
         }
-        
+
         # تنظيف نهائي
         return self._sanitize_data_for_json(result)
 
