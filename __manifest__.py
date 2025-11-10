@@ -51,6 +51,10 @@
         'data/ir_sequence_data.xml',
         'data/notary_document_type_data.xml',
 
+        # Reports
+        'reports/notary_reports.xml',
+        'reports/marriage_contract_report.xml',
+
         # Views
         'views/notary_document_type_views.xml',
         'views/notary_document_views.xml',

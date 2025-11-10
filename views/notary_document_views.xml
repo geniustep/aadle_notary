@@ -49,8 +49,12 @@
                         <button name="action_finalize" string="إتمام" type="object"
                                 class="oe_highlight" invisible="state != 'confirmed'"/>
 
-                        <button name="action_generate_pdf" string="توليد PDF" type="object"
+                        <button name="action_generate_pdf" string="توليد PDF (aadle_docgen)" type="object"
                                 invisible="state not in ['draft', 'confirmed']"/>
+
+                        <button name="%(aadle_notary.action_report_marriage_contract)d" string="طباعة PDF (Odoo)" type="action"
+                                invisible="state not in ['draft', 'confirmed'] or document_type_id.code != 'marriage_contract'"
+                                class="btn-primary"/>
 
                         <button name="action_calculate_inheritance" string="حساب الإرث" type="object"
                                 invisible="state not in ['draft', 'confirmed']"/>
