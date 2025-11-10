@@ -10,6 +10,7 @@ import qrcode
 import requests
 import logging
 from io import BytesIO
+from datetime import datetime
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
 
@@ -637,7 +638,6 @@ class NotaryDocument(models.Model):
         """
         الحصول على الساعة الحالية
         """
-        from datetime import datetime
         now = datetime.now()
         return now.strftime('%I:%M')  # صيغة 12 ساعة
 
@@ -645,7 +645,6 @@ class NotaryDocument(models.Model):
         """
         الحصول على فترة اليوم (صباحا/مساء)
         """
-        from datetime import datetime
         now = datetime.now()
         hour = now.hour
 
@@ -658,8 +657,6 @@ class NotaryDocument(models.Model):
         """
         الحصول على اسم اليوم بالعربية
         """
-        from datetime import datetime
-
         # أيام الأسبوع بالعربية
         arabic_days = {
             0: 'الاثنين',
@@ -682,8 +679,6 @@ class NotaryDocument(models.Model):
         """
         try:
             from hijri_converter import Gregorian
-            from datetime import datetime
-
             now = datetime.now()
             hijri = Gregorian(now.year, now.month, now.day).to_hijri()
 
