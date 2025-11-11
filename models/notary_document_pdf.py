@@ -382,6 +382,19 @@ class NotaryDocument(models.Model):
         """
         تنظيف البيانات بالكامل لتكون JSON-serializable
         """
+        # معالجة خاصة للـ JSON strings - تحويلها إلى dict
+        if isinstance(data, str):
+            # محاولة تحويل JSON string إلى dictionary
+            try:
+                import json
+                parsed_data = json.loads(data)
+                # إعادة استدعاء الدالة على البيانات المحولة
+                return self._sanitize_data_for_json(parsed_data)
+            except (json.JSONDecodeError, ValueError, TypeError):
+                # إذا فشل التحويل، نرجع dictionary فارغ لتجنب الخطأ
+                _logger.warning(f"[PDF Generation] فشل تحويل JSON string إلى dict: {data[:100] if len(data) > 100 else data}")
+                return {}
+
         if isinstance(data, dict):
             return {k: self._sanitize_data_for_json(v) for k, v in data.items()}
         elif isinstance(data, (list, tuple)):
@@ -412,8 +425,16 @@ class NotaryDocument(models.Model):
 
         # إضافة البيانات المخصصة من حقل data (JSON)
         if self.data:
+            _logger.info(f"[PDF Generation] نوع حقل data قبل التنظيف: {type(self.data)}")
             sanitized_custom_data = self._sanitize_data_for_json(self.data)
-            data.update(sanitized_custom_data)
+            _logger.info(f"[PDF Generation] نوع البيانات بعد التنظيف: {type(sanitized_custom_data)}")
+
+            # التحقق من أن البيانات المنظفة هي dictionary قبل التحديث
+            if isinstance(sanitized_custom_data, dict):
+                data.update(sanitized_custom_data)
+                _logger.info(f"[PDF Generation] تم دمج {len(sanitized_custom_data)} حقل من البيانات المخصصة")
+            else:
+                _logger.warning(f"[PDF Generation] ⚠️ البيانات المخصصة ليست dictionary، تم تجاهلها: {type(sanitized_custom_data)}")
 
         # إضافة بيانات خاصة بنوع الوثيقة
         if self.document_type_id and self.document_type_id.code == 'marriage_contract':
@@ -430,7 +451,17 @@ class NotaryDocument(models.Model):
         تحضير بيانات خاصة بعقد الزواج - متوافق مع القالب المغربي
         """
         self.ensure_one()
-        data = self.data or {}
+
+        # التأكد من أن self.data هو dictionary
+        if isinstance(self.data, str):
+            try:
+                import json
+                data = json.loads(self.data)
+            except (json.JSONDecodeError, ValueError, TypeError):
+                _logger.warning(f"[PDF Generation] فشل تحويل data في _prepare_marriage_contract_data")
+                data = {}
+        else:
+            data = self.data or {}
 
         # تحضير البيانات مع تنظيف التواريخ
         result = {
@@ -584,7 +615,17 @@ class NotaryDocument(models.Model):
         تحضير بيانات خاصة بعقد الطلاق
         """
         self.ensure_one()
-        data = self.data or {}
+
+        # التأكد من أن self.data هو dictionary
+        if isinstance(self.data, str):
+            try:
+                import json
+                data = json.loads(self.data)
+            except (json.JSONDecodeError, ValueError, TypeError):
+                _logger.warning(f"[PDF Generation] فشل تحويل data في _prepare_divorce_data")
+                data = {}
+        else:
+            data = self.data or {}
 
         result = {
             'divorce_type': data.get('divorce_type', ''),
