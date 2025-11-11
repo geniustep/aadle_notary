@@ -297,12 +297,9 @@
     <record id="action_notary_document_marriage" model="ir.actions.act_window">
         <field name="name">عقود الزواج</field>
         <field name="res_model">notary.document</field>
-        <field name="view_mode">tree,form,kanban</field>
+        <field name="view_mode">list,form,kanban</field>
         <field name="domain">[('document_type_id.code', '=', 'marriage_contract')]</field>
-        <field name="context">{
-            'default_document_type_id': ref('aadle_notary.document_type_marriage_contract'),
-            'form_view_ref': 'aadle_notary.view_notary_document_marriage_form',
-        }</field>
+        <field name="context" eval="{'default_document_type_id': ref('aadle_notary.document_type_marriage_contract'), 'form_view_ref': 'aadle_notary.view_notary_document_marriage_form'}"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 إنشاء عقد زواج جديد
