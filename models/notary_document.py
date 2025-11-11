@@ -227,6 +227,24 @@ class NotaryDocument(models.Model):
         for record in self:
             record.has_pdf = bool(record.pdf_file or record.pdf_url)
 
+    def _get_data_dict(self):
+        """
+        تحويل حقل data من JSON string إلى dictionary
+        للاستخدام في QWeb templates
+        """
+        self.ensure_one()
+        if not self.data:
+            return {}
+        try:
+            if isinstance(self.data, str):
+                return json.loads(self.data)
+            elif isinstance(self.data, dict):
+                return self.data
+            else:
+                return {}
+        except (json.JSONDecodeError, ValueError, TypeError):
+            return {}
+
     @api.depends('pdf_file')
     def _compute_pdf_file_size(self):
         """حساب حجم ملف PDF"""

@@ -15,7 +15,7 @@ import json
 from typing import Dict, List, Optional
 
 
-def get_templates_from_api(base_url: str = 'https://docgen.aadle.com', 
+def get_templates_from_api(base_url: str = 'https://docgen.propanel.ma', 
                            auth_token: Optional[str] = None) -> List[Dict]:
     """
     الحصول على قائمة القوالب من aadle_docgen API
@@ -210,9 +210,9 @@ def main():
     print('=' * 60)
     
     # الحصول على القوالب
-    base_url = input('\n📝 أدخل URL لـ aadle_docgen (افتراضي: https://docgen.aadle.com): ').strip()
+    base_url = input('\n📝 أدخل URL لـ aadle_docgen (افتراضي: https://docgen.propanel.ma): ').strip()
     if not base_url:
-        base_url = 'https://docgen.aadle.com'
+        base_url = 'https://docgen.propanel.ma'
     
     auth_token = input('📝 أدخل Bearer Token (اختياري - اضغط Enter للتخطي): ').strip()
     if not auth_token:
@@ -225,7 +225,7 @@ def main():
         print('\n❌ لم يتم العثور على قوالب')
         print('\n💡 يمكنك:')
         print('  1. التحقق من URL و Authentication')
-        print('  2. فتح https://docgen.aadle.com/docs في المتصفح')
+        print('  2. فتح https://docgen.propanel.ma/docs في المتصفح')
         print('  3. نسخ UUIDs يدوياً وتحديث قاعدة البيانات')
         return
     

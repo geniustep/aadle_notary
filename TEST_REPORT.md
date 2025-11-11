@@ -41,8 +41,8 @@
 
 | الإعداد | القيمة | الحالة |
 |--------|--------|--------|
-| `aadle.docgen_url` | `https://docgen.aadle.com` | ✅ محدد |
-| `aadle.docgen_fallback_url` | `https://docgen.aadle.com` | ✅ محدد |
+| `aadle.docgen_url` | `https://docgen.propanel.ma` | ✅ محدد |
+| `aadle.docgen_fallback_url` | `https://docgen.propanel.ma` | ✅ محدد |
 | `aadle.docgen_api_path` | `/api/v1/generate` | ✅ محدد |
 | `aadle.docgen_auth_type` | `bearer` | ✅ محدد |
 | `aadle.docgen_api_token` | غير محدد | ⚠️ سيستخدم session token |
@@ -74,7 +74,7 @@ if not template_id:
 #### Endpoint و Payload:
 
 ```python
-# FastAPI (docgen.aadle.com)
+# FastAPI (docgen.propanel.ma)
 endpoint = f'{docgen_url}/docs/render'  # ✅ صحيح
 payload = {
     'template_id': template_id,  # ✅ صحيح
@@ -91,9 +91,9 @@ payload = {
 ### ⚠️ 5. اختبار الاتصال بـ aadle_docgen
 
 **المحاولات:**
-- `https://docgen.aadle.com/templates` - ❌ Timeout
-- `https://docgen.aadle.com/api/templates` - ❌ Timeout
-- `https://docgen.aadle.com/docs` - ❌ Error 520
+- `https://docgen.propanel.ma/templates` - ❌ Timeout
+- `https://docgen.propanel.ma/api/templates` - ❌ Timeout
+- `https://docgen.propanel.ma/docs` - ❌ Error 520
 
 **النتيجة:** ⚠️ aadle_docgen غير متاح حالياً
 
@@ -136,10 +136,10 @@ set_template_id(env, 'divorce_contract', 'uuid-actual-here')
 
 ```bash
 # اختبار الاتصال
-curl https://docgen.aadle.com/docs
+curl https://docgen.propanel.ma/docs
 
 # أو من المتصفح
-# افتح: https://docgen.aadle.com/docs
+# افتح: https://docgen.propanel.ma/docs
 ```
 
 ### 3. اختبار توليد PDF

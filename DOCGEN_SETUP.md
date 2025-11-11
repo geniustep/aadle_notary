@@ -19,7 +19,7 @@ sudo -u odoo18 bash -c "source venv/bin/activate && python3 odoo/odoo-bin shell 
 ### 2. الإعدادات المتاحة
 
 #### URLs
-- `aadle.docgen_url`: URL الخادم الأساسي (افتراضي: `https://docgen.aadle.com`)
+- `aadle.docgen_url`: URL الخادم الأساسي (افتراضي: `https://docgen.propanel.ma`)
 - `aadle.docgen_fallback_url`: URL الخادم الاحتياطي (افتراضي: `http://64.226.110.81:5000`)
 
 #### API Path

@@ -26,7 +26,7 @@ python3 get_templates_from_docgen.py
 
 ```python
 exec(open('/opt/odoo18/custom_models/aadle_notary/scripts/get_templates_from_docgen.py').read())
-templates = get_templates_from_api('https://docgen.aadle.com', auth_token='YOUR_TOKEN')
+templates = get_templates_from_api('https://docgen.propanel.ma', auth_token='YOUR_TOKEN')
 update_odoo_template_ids(env, templates, interactive=True)
 ```
 
@@ -60,7 +60,7 @@ update_template_ids(env)  # ⚠️ يجب تحديث UUIDs في الكود أو�
 
 ```bash
 # محاولة من Terminal
-curl https://docgen.aadle.com/templates
+curl https://docgen.propanel.ma/templates
 
 # أو استخدام Script
 python3 scripts/get_templates_from_docgen.py
@@ -94,7 +94,7 @@ sudo -u odoo18 bash -c "source venv/bin/activate && python3 odoo/odoo-bin shell 
 exec(open('/opt/odoo18/custom_models/aadle_notary/scripts/get_templates_from_docgen.py').read())
 
 # 3. الحصول على القوالب
-templates = get_templates_from_api('https://docgen.aadle.com')
+templates = get_templates_from_api('https://docgen.propanel.ma')
 
 # 4. تحديث قاعدة البيانات
 update_odoo_template_ids(env, templates, interactive=True)

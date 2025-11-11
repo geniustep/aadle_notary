@@ -6,15 +6,22 @@
 
 import base64
 import hashlib
+import json
+import logging
+from datetime import datetime
+from io import BytesIO
+
 import qrcode
 import requests
-import logging
-from io import BytesIO
-from datetime import datetime
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
+
+FASTAPI_DOMAINS = (
+    'docgen.propanel.ma',
+    'docgen.aadle.com',
+)
 
 
 class NotaryDocument(models.Model):
@@ -45,7 +52,7 @@ class NotaryDocument(models.Model):
 
         # الحصول على URL لخدمة aadle_docgen من الإعدادات
         ICP = self.env['ir.config_parameter'].sudo()
-        primary_url = ICP.get_param('aadle.docgen_url', 'https://docgen.aadle.com')
+        primary_url = ICP.get_param('aadle.docgen_url', 'https://docgen.propanel.ma')
         fallback_url = ICP.get_param('aadle.docgen_fallback_url', '')
 
         # الحصول على معلومات authentication
@@ -99,7 +106,7 @@ class NotaryDocument(models.Model):
 
         # إذا لم تكن هناك خوادم، استخدم الافتراضي
         if not docgen_urls:
-            docgen_urls = ['https://docgen.aadle.com']
+            docgen_urls = ['https://docgen.propanel.ma']
 
         # تحضير البيانات للإرسال إلى aadle_docgen
         _logger.info(f"[PDF Generation] تحضير بيانات الوثيقة...")
@@ -141,9 +148,9 @@ class NotaryDocument(models.Model):
                 _logger.info(f"[PDF Generation] محاولة {idx}/{len(docgen_urls)}: {docgen_url}")
 
                 # تحديد endpoint و payload بناءً على نوع الخادم
-                # FastAPI الجديد (docgen.aadle.com)
+                # FastAPI الجديد (docgen.propanel.ma / docgen.aadle.com)
                 # API الصحيح: POST /docs/render (حسب OpenAPI schema)
-                if 'docgen.aadle.com' in docgen_url:
+                if any(domain in docgen_url for domain in FASTAPI_DOMAINS):
                     endpoint = f'{docgen_url}/docs/render'
                     payload = {
                         'template_id': template_id,
@@ -410,27 +417,64 @@ class NotaryDocument(models.Model):
             'state': self.state or '',
         }
 
-        # إضافة البيانات المخصصة من حقل data (JSON)
-        if self.data:
-            sanitized_custom_data = self._sanitize_data_for_json(self.data)
-            data.update(sanitized_custom_data)
+        custom_data = self._get_custom_data_dict()
+        if custom_data:
+            sanitized_custom_data = self._sanitize_data_for_json(custom_data)
+            if isinstance(sanitized_custom_data, dict):
+                data.update(sanitized_custom_data)
+            else:
+                _logger.warning("[PDF Generation] ⚠️ حقل data لا يحتوي على قاموس بعد التنظيف، تم تجاهله")
 
         # إضافة بيانات خاصة بنوع الوثيقة
         if self.document_type_id and self.document_type_id.code == 'marriage_contract':
-            data.update(self._prepare_marriage_contract_data())
+            data.update(self._prepare_marriage_contract_data(custom_data))
         elif self.document_type_id and self.document_type_id.code == 'divorce':
-            data.update(self._prepare_divorce_data())
+            data.update(self._prepare_divorce_data(custom_data))
         # يمكن إضافة أنواع أخرى هنا
 
         # تنظيف نهائي للبيانات
         return self._sanitize_data_for_json(data)
 
-    def _prepare_marriage_contract_data(self):
+    def _get_custom_data_dict(self):
+        """
+        إعادة حقل data كقاموس موثوق (مع محاولة Parsing عند الحاجة)
+        """
+        self.ensure_one()
+
+        raw = self.data
+        if not raw:
+            return {}
+
+        if hasattr(self, '_get_data_dict'):
+            try:
+                data_dict = self._get_data_dict()
+                if isinstance(data_dict, dict):
+                    return data_dict
+            except Exception as exc:
+                _logger.warning("[PDF Generation] تعذر تحويل data عبر _get_data_dict: %s", exc)
+
+        if isinstance(raw, dict):
+            return raw
+
+        if isinstance(raw, str):
+            try:
+                parsed = json.loads(raw)
+                if isinstance(parsed, dict):
+                    return parsed
+                _logger.warning("[PDF Generation] JSON محمل من data ليس قاموساً (type=%s)" , type(parsed).__name__)
+            except Exception as exc:
+                _logger.error("[PDF Generation] ⚠️ فشل قراءة JSON من data: %s", exc)
+            return {}
+
+        _logger.warning("[PDF Generation] نوع غير مدعوم لحقل data: %s", type(raw).__name__)
+        return {}
+
+    def _prepare_marriage_contract_data(self, custom_data=None):
         """
         تحضير بيانات خاصة بعقد الزواج - متوافق مع القالب المغربي
         """
         self.ensure_one()
-        data = self.data or {}
+        data = custom_data or self._get_custom_data_dict()
 
         # تحضير البيانات مع تنظيف التواريخ
         result = {
@@ -579,12 +623,12 @@ class NotaryDocument(models.Model):
         # تنظيف نهائي
         return self._sanitize_data_for_json(result)
 
-    def _prepare_divorce_data(self):
+    def _prepare_divorce_data(self, custom_data=None):
         """
         تحضير بيانات خاصة بعقد الطلاق
         """
         self.ensure_one()
-        data = self.data or {}
+        data = custom_data or self._get_custom_data_dict()
 
         result = {
             'divorce_type': data.get('divorce_type', ''),

@@ -6,11 +6,13 @@
 
     <template id="report_marriage_contract_document">
         <t t-call="web.html_container">
+            <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
             <t t-foreach="docs" t-as="o">
-                <div class="page" style="direction: rtl;">
+                <div class="page" style="direction: rtl;" lang="ar" xml:lang="ar">
 
                     <style>
                         @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&amp;family=Cairo:wght@400;600;700&amp;display=swap');
+                        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;600;700&amp;display=swap');
 
                         @page {
                             size: A4;
@@ -24,10 +26,12 @@
                         }
 
                         body {
-                            font-family: 'Amiri', 'Cairo', serif;
+                            font-family: 'Noto Sans Arabic', 'Amiri', 'Cairo', 'Arial', sans-serif;
                             line-height: 1.6;
                             color: #2C1810;
                             background: #fdfbf7;
+                            direction: rtl;
+                            unicode-bidi: embed;
                         }
 
                         .container {
@@ -149,6 +153,9 @@
                                 line-height: 1.5;
                                 margin-bottom: 8px;
                                 text-indent: 20px;
+                                font-family: 'Noto Sans Arabic', 'Amiri', 'Cairo', 'Arial', sans-serif;
+                                direction: rtl;
+                                unicode-bidi: embed;
                             }
 
                             .section-title {
@@ -211,17 +218,26 @@
                             .label {
                                 font-weight: 700;
                                 color: #8B6914;
+                                font-family: 'Noto Sans Arabic', 'Amiri', 'Cairo', 'Arial', sans-serif;
+                                direction: rtl;
+                                unicode-bidi: embed;
                             }
 
                             .value {
                                 color: #2C1810;
                                 display: inline-block;
+                                font-family: 'Noto Sans Arabic', 'Amiri', 'Cairo', 'Arial', sans-serif;
+                                direction: rtl;
+                                unicode-bidi: embed;
                                 margin-right: 5px;
                             }
 
                             .highlight {
                                 font-weight: 700;
                                 color: #C04000;
+                                font-family: 'Noto Sans Arabic', 'Amiri', 'Cairo', 'Arial', sans-serif;
+                                direction: rtl;
+                                unicode-bidi: embed;
                             }
 
                             .blessing {
@@ -316,7 +332,7 @@
                         </style>
 
                         <!-- تحضير البيانات -->
-                        <t t-set="data" t-value="o.data or {}"/>
+                        <t t-set="data" t-value="o._get_data_dict()"/>
                         <t t-set="court_name" t-value="data.get('court_name', o.company_id.name or '')"/>
                         <t t-set="court_type" t-value="data.get('court_type', 'الابتدائية')"/>
                         <t t-set="court_city" t-value="data.get('court_city', o.company_id.city or '')"/>

@@ -61,7 +61,7 @@ add_template_id_by_name(env, 'عقد زواج', 'your-uuid-here')
 
 ### من واجهة aadle_docgen:
 
-1. افتح: **https://docgen.aadle.com/docs**
+1. افتح: **https://docgen.propanel.ma/docs**
 2. اذهب إلى قسم **Templates**
 3. اعرض قائمة القوالب
 4. انسخ **UUID** للقالب المطلوب
@@ -69,7 +69,7 @@ add_template_id_by_name(env, 'عقد زواج', 'your-uuid-here')
 ### من API (إذا كان متاحاً):
 
 ```bash
-curl https://docgen.aadle.com/templates
+curl https://docgen.propanel.ma/templates
 ```
 
 ---

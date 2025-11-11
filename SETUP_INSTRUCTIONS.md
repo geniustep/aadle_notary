@@ -107,7 +107,7 @@ ICP = env['ir.config_parameter'].sudo()
 print('📋 الإعدادات الحالية:')
 print(f'   API Path: {ICP.get_param(\"aadle.docgen_api_path\", \"/api/generate\")}')
 print(f'   Auth Type: {ICP.get_param(\"aadle.docgen_auth_type\", \"bearer\")}')
-print(f'   Primary URL: {ICP.get_param(\"aadle.docgen_url\", \"https://docgen.aadle.com\")}')
+print(f'   Primary URL: {ICP.get_param(\"aadle.docgen_url\", \"https://docgen.propanel.ma\")}')
 print(f'   Fallback URL: {ICP.get_param(\"aadle.docgen_fallback_url\", \"http://64.226.110.81:5000\")}')
 EOF
 "

@@ -8,13 +8,13 @@
 
 ```bash
 # محاولة 1: endpoint مباشر
-curl https://docgen.aadle.com/templates
+curl https://docgen.propanel.ma/templates
 
 # محاولة 2: مع authentication
-curl -H "Authorization: Bearer YOUR_TOKEN" https://docgen.aadle.com/templates
+curl -H "Authorization: Bearer YOUR_TOKEN" https://docgen.propanel.ma/templates
 
 # محاولة 3: API path مختلف
-curl https://docgen.aadle.com/api/templates
+curl https://docgen.propanel.ma/api/templates
 ```
 
 #### الطريقة 2: استخدام Python Script
@@ -33,7 +33,7 @@ sudo -u odoo18 bash -c "source venv/bin/activate && python3 odoo/odoo-bin shell 
 
 # في Shell:
 exec(open('/opt/odoo18/custom_models/aadle_notary/scripts/get_templates_from_docgen.py').read())
-templates = get_templates_from_api('https://docgen.aadle.com', auth_token='YOUR_TOKEN')
+templates = get_templates_from_api('https://docgen.propanel.ma', auth_token='YOUR_TOKEN')
 print(templates)
 ```
 
@@ -41,7 +41,7 @@ print(templates)
 
 ### 🔧 الخطوة #2: الحصول على UUIDs من واجهة aadle_docgen
 
-1. افتح المتصفح واذهب إلى: **https://docgen.aadle.com/docs**
+1. افتح المتصفح واذهب إلى: **https://docgen.propanel.ma/docs**
 2. اعرض قائمة القوالب (Templates)
 3. انسخ UUID لكل قالب
 4. استخدم UUIDs لتحديث قاعدة البيانات
@@ -59,7 +59,7 @@ sudo -u odoo18 bash -c "source venv/bin/activate && python3 odoo/odoo-bin shell 
 
 # في Shell:
 exec(open('/opt/odoo18/custom_models/aadle_notary/scripts/get_templates_from_docgen.py').read())
-templates = get_templates_from_api('https://docgen.aadle.com')
+templates = get_templates_from_api('https://docgen.propanel.ma')
 update_odoo_template_ids(env, templates, interactive=True)
 ```
 
@@ -113,7 +113,7 @@ WHERE code = 'divorce';
 
 ```bash
 # إنشاء قالب جديد
-curl -X POST https://docgen.aadle.com/templates \
+curl -X POST https://docgen.propanel.ma/templates \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
@@ -127,7 +127,7 @@ curl -X POST https://docgen.aadle.com/templates \
 
 #### من واجهة aadle_docgen:
 
-1. افتح **https://docgen.aadle.com/docs**
+1. افتح **https://docgen.propanel.ma/docs**
 2. اذهب إلى قسم Templates
 3. اضغط على "Create Template"
 4. أدخل بيانات القالب
@@ -153,7 +153,7 @@ curl -X POST https://docgen.aadle.com/templates \
 
 ```bash
 # اختبار endpoint
-curl -X POST https://docgen.aadle.com/docs/render \
+curl -X POST https://docgen.propanel.ma/docs/render \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
@@ -211,7 +211,7 @@ env['notary.document.type'].search([]).read(['name', 'code', 'template_id'])
 ## 📞 الدعم
 
 إذا واجهت مشاكل:
-1. تحقق من أن aadle_docgen يعمل: `curl https://docgen.aadle.com/docs`
+1. تحقق من أن aadle_docgen يعمل: `curl https://docgen.propanel.ma/docs`
 2. تحقق من Authentication
 3. راجع رسائل الخطأ في Odoo logs
 4. تأكد من أن UUIDs صحيحة

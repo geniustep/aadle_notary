@@ -112,7 +112,7 @@ elif api_key:  # fallback
 
 | الخادم | Endpoint | Payload |
 |--------|----------|---------|
-| **FastAPI** (`docgen.aadle.com`) | `/docs/render` | `template_id`, `data`, `include_qr`, `include_signature` |
+| **FastAPI** (`docgen.propanel.ma`) | `/docs/render` | `template_id`, `data`, `include_qr`, `include_signature` |
 | **Flask** (localhost/IP:5000) | `/api/generate` | `template` (template_id أو template_name), `data`, `format` |
 
 ---

@@ -4,7 +4,7 @@
 
 ### ✅ 1. دعم FastAPI الجديد و Flask القديم
 
-#### FastAPI الجديد (`docgen.aadle.com`)
+#### FastAPI الجديد (`docgen.propanel.ma`)
 - **Endpoint:** `/docs/render`
 - **Payload:**
   ```json
@@ -112,7 +112,7 @@
 
 ```python
 # URL الخادم الأساسي
-aadle.docgen_url = https://docgen.aadle.com
+aadle.docgen_url = https://docgen.propanel.ma
 
 # URL الخادم الاحتياطي (اختياري - يمكن تركه فارغاً)
 aadle.docgen_fallback_url = 
@@ -130,7 +130,7 @@ aadle.docgen_api_key =
 ### ملاحظات:
 - **Bearer Token** يتم أخذه تلقائياً من جلسة المستخدم
 - **fallback_url** يمكن تركه فارغاً
-- إذا لم يتم تحديد أي خوادم، سيتم استخدام `https://docgen.aadle.com` كافتراضي
+- إذا لم يتم تحديد أي خوادم، سيتم استخدام `https://docgen.propanel.ma` كافتراضي
 
 ---
 
@@ -145,7 +145,7 @@ sudo -u odoo18 bash -c "source venv/bin/activate && python3 odoo/odoo-bin shell 
 ثم:
 ```python
 ICP = env['ir.config_parameter'].sudo()
-ICP.set_param('aadle.docgen_url', 'https://docgen.aadle.com')
+ICP.set_param('aadle.docgen_url', 'https://docgen.propanel.ma')
 ICP.set_param('aadle.docgen_auth_type', 'bearer')
 ```
 
