@@ -389,6 +389,19 @@ class NotaryDocument(models.Model):
         """
         تنظيف البيانات بالكامل لتكون JSON-serializable
         """
+        # معالجة خاصة للـ JSON strings - تحويلها إلى dict
+        if isinstance(data, str):
+            # محاولة تحويل JSON string إلى dictionary
+            try:
+                import json
+                parsed_data = json.loads(data)
+                # إعادة استدعاء الدالة على البيانات المحولة
+                return self._sanitize_data_for_json(parsed_data)
+            except (json.JSONDecodeError, ValueError, TypeError):
+                # إذا فشل التحويل، نرجع dictionary فارغ لتجنب الخطأ
+                _logger.warning(f"[PDF Generation] فشل تحويل JSON string إلى dict: {data[:100] if len(data) > 100 else data}")
+                return {}
+
         if isinstance(data, dict):
             return {k: self._sanitize_data_for_json(v) for k, v in data.items()}
         elif isinstance(data, (list, tuple)):
@@ -419,11 +432,17 @@ class NotaryDocument(models.Model):
 
         custom_data = self._get_custom_data_dict()
         if custom_data:
+            _logger.info(f"[PDF Generation] نوع حقل data قبل التنظيف: {type(self.data)}")
             sanitized_custom_data = self._sanitize_data_for_json(custom_data)
+            _logger.info(f"[PDF Generation] نوع البيانات بعد التنظيف: {type(sanitized_custom_data)}")
+
             if isinstance(sanitized_custom_data, dict):
                 data.update(sanitized_custom_data)
+                _logger.info(f"[PDF Generation] تم دمج {len(sanitized_custom_data)} حقل من البيانات المخصصة")
             else:
-                _logger.warning("[PDF Generation] ⚠️ حقل data لا يحتوي على قاموس بعد التنظيف، تم تجاهله")
+                _logger.warning(f"[PDF Generation] ⚠️ حقل data لا يحتوي على قاموس بعد التنظيف، تم تجاهله ({type(sanitized_custom_data)})")
+        elif self.data:
+            _logger.warning(f"[PDF Generation] ⚠️ تعذر تحويل data إلى قاموس، تم تجاهله (type={type(self.data)})")
 
         # إضافة بيانات خاصة بنوع الوثيقة
         if self.document_type_id and self.document_type_id.code == 'marriage_contract':
@@ -474,7 +493,10 @@ class NotaryDocument(models.Model):
         تحضير بيانات خاصة بعقد الزواج - متوافق مع القالب المغربي
         """
         self.ensure_one()
-        data = custom_data or self._get_custom_data_dict()
+        data = custom_data if isinstance(custom_data, dict) else {}
+        if not data:
+            fallback = self._get_custom_data_dict()
+            data = fallback if isinstance(fallback, dict) else {}
 
         # تحضير البيانات مع تنظيف التواريخ
         result = {
@@ -628,248 +650,9 @@ class NotaryDocument(models.Model):
         تحضير بيانات خاصة بعقد الطلاق
         """
         self.ensure_one()
-        data = custom_data or self._get_custom_data_dict()
+        data = custom_data if isinstance(custom_data, dict) else {}
+        if not data:
+            fallback = self._get_custom_data_dict()
+            data = fallback if isinstance(fallback, dict) else {}
 
         result = {
-            'divorce_type': data.get('divorce_type', ''),
-            'divorce_date': self._safe_json_value(data.get('divorce_date', '')),
-            # أضف المزيد من الحقول حسب الحاجة
-        }
-
-        # تنظيف نهائي
-        return self._sanitize_data_for_json(result)
-
-    def _get_template_name(self):
-        """
-        الحصول على اسم القالب بناءً على نوع الوثيقة
-        """
-        self.ensure_one()
-
-        template_mapping = {
-            'marriage_contract': 'marriage_contract',
-            'divorce': 'divorce',
-            'power_of_attorney': 'power_of_attorney',
-            'inheritance': 'inheritance',
-            'sale_contract': 'sale_contract',
-        }
-
-        code = self.document_type_id.code if self.document_type_id else ''
-        template = template_mapping.get(code, 'default')
-
-        return template
-
-    def _get_company_address(self):
-        """
-        الحصول على عنوان الشركة بشكل منسق
-        """
-        self.ensure_one()
-        if not self.company_id:
-            return ''
-
-        company = self.company_id
-        address_parts = []
-
-        if company.street:
-            address_parts.append(company.street)
-        if company.city:
-            address_parts.append(company.city)
-        if company.country_id:
-            address_parts.append(company.country_id.name)
-
-        return ', '.join(address_parts)
-
-    def _get_current_time_hour(self):
-        """
-        الحصول على الساعة الحالية
-        """
-        now = datetime.now()
-        return now.strftime('%I:%M')  # صيغة 12 ساعة
-
-    def _get_current_time_period(self):
-        """
-        الحصول على فترة اليوم (صباحا/مساء)
-        """
-        now = datetime.now()
-        hour = now.hour
-
-        if hour < 12:
-            return 'صباحا'
-        else:
-            return 'مساء'
-
-    def _get_day_name(self):
-        """
-        الحصول على اسم اليوم بالعربية
-        """
-        # أيام الأسبوع بالعربية
-        arabic_days = {
-            0: 'الاثنين',
-            1: 'الثلاثاء',
-            2: 'الأربعاء',
-            3: 'الخميس',
-            4: 'الجمعة',
-            5: 'السبت',
-            6: 'الأحد',
-        }
-
-        today = datetime.now().weekday()
-        return arabic_days.get(today, '')
-
-    def _get_hijri_date(self):
-        """
-        الحصول على التاريخ الهجري
-        ملاحظة: يتطلب تثبيت مكتبة hijri-converter
-        pip install hijri-converter
-        """
-        try:
-            from hijri_converter import Gregorian
-            now = datetime.now()
-            hijri = Gregorian(now.year, now.month, now.day).to_hijri()
-
-            # أسماء الشهور الهجرية
-            hijri_months = [
-                '', 'محرم', 'صفر', 'ربيع الأول', 'ربيع الثاني', 'جمادى الأولى',
-                'جمادى الثانية', 'رجب', 'شعبان', 'رمضان', 'شوال',
-                'ذو القعدة', 'ذو الحجة'
-            ]
-
-            month_name = hijri_months[hijri.month] if hijri.month <= len(hijri_months) else ''
-            return f'{hijri.day} {month_name} {hijri.year}'
-
-        except ImportError:
-            # إذا لم تكن المكتبة مثبتة، نرجع تنسيق افتراضي
-            _logger.warning("hijri-converter library not installed. Install it with: pip install hijri-converter")
-            return 'يرجى تثبيت hijri-converter'
-        except Exception as e:
-            _logger.error(f"Error converting to Hijri date: {str(e)}")
-            return ''
-
-    def _extract_year(self, date_value):
-        """
-        استخراج السنة من تاريخ
-        """
-        if not date_value:
-            return ''
-
-        # إذا كان string
-        if isinstance(date_value, str):
-            # محاولة استخراج السنة من التاريخ بصيغة YYYY-MM-DD
-            if len(date_value) >= 4:
-                return date_value[:4]
-
-        # إذا كان date أو datetime
-        if hasattr(date_value, 'year'):
-            return str(date_value.year)
-
-        return ''
-
-    def _number_to_arabic_text(self, number):
-        """
-        تحويل رقم إلى نص عربي
-        مثال: 50000 => خمسون ألف
-        """
-        try:
-            number = float(number)
-
-            # للأرقام الصغيرة، يمكنك إضافة منطق التحويل الكامل
-            # هنا نستخدم تحويل بسيط
-
-            ones = ['', 'واحد', 'اثنان', 'ثلاثة', 'أربعة', 'خمسة', 'ستة', 'سبعة', 'ثمانية', 'تسعة']
-            tens = ['', 'عشرة', 'عشرون', 'ثلاثون', 'أربعون', 'خمسون', 'ستون', 'سبعون', 'ثمانون', 'تسعون']
-            hundreds = ['', 'مئة', 'مئتان', 'ثلاثمئة', 'أربعمئة', 'خمسمئة', 'ستمئة', 'سبعمئة', 'ثمانمئة', 'تسعمئة']
-
-            if number == 0:
-                return 'صفر'
-
-            if number < 0:
-                return 'سالب ' + self._number_to_arabic_text(abs(number))
-
-            # تحويل بسيط للأرقام الشائعة
-            num_int = int(number)
-
-            # للأرقام الكبيرة، نستخدم تنسيق بسيط
-            if num_int >= 1000000:
-                millions = num_int // 1000000
-                rest = num_int % 1000000
-                result = self._number_to_arabic_text(millions) + ' مليون'
-                if rest > 0:
-                    result += ' و' + self._number_to_arabic_text(rest)
-                return result
-
-            if num_int >= 1000:
-                thousands = num_int // 1000
-                rest = num_int % 1000
-                result = self._number_to_arabic_text(thousands) + ' ألف'
-                if rest > 0:
-                    result += ' و' + self._number_to_arabic_text(rest)
-                return result
-
-            if num_int >= 100:
-                hundred = num_int // 100
-                rest = num_int % 100
-                result = hundreds[hundred]
-                if rest > 0:
-                    result += ' و' + self._number_to_arabic_text(rest)
-                return result
-
-            if num_int >= 20:
-                ten = num_int // 10
-                rest = num_int % 10
-                result = tens[ten]
-                if rest > 0:
-                    result += ' و' + ones[rest]
-                return result
-
-            if num_int >= 11:
-                # الأعداد من 11 إلى 19
-                special = ['', 'أحد عشر', 'اثنا عشر', 'ثلاثة عشر', 'أربعة عشر', 'خمسة عشر',
-                          'ستة عشر', 'سبعة عشر', 'ثمانية عشر', 'تسعة عشر']
-                return special[num_int - 10]
-
-            if num_int == 10:
-                return 'عشرة'
-
-            return ones[num_int]
-
-        except Exception as e:
-            _logger.error(f"Error converting number to Arabic text: {str(e)}")
-            return str(number)
-
-    def _generate_qr_data(self, file_hash):
-        """
-        توليد البيانات التي سيتم وضعها في QR Code
-        """
-        self.ensure_one()
-
-        # يمكن تخصيص البيانات حسب الحاجة
-        # يمكن أن يكون رابط للتحقق من الوثيقة على موقع
-        base_url = self.env['ir.config_parameter'].sudo().get_param(
-            'web.base.url', 'http://localhost:8069'
-        )
-
-        verification_url = f"{base_url}/verify/{self.id}/{file_hash}"
-        return verification_url
-
-    def _generate_qr_code(self, data):
-        """
-        توليد QR Code وإرجاعه كـ Base64
-        """
-        # إنشاء QR Code
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_L,
-            box_size=10,
-            border=4,
-        )
-        qr.add_data(data)
-        qr.make(fit=True)
-
-        # توليد صورة QR
-        img = qr.make_image(fill_color="black", back_color="white")
-
-        # تحويل إلى Base64
-        buffer = BytesIO()
-        img.save(buffer, format='PNG')
-        qr_base64 = base64.b64encode(buffer.getvalue()).decode()
-
-        return qr_base64
